@@ -1,0 +1,16 @@
+{
+    "name": "Kryz.MonoDI",
+    "rootNamespace": "Kryz.MonoDI",
+    "references": [
+        "Kryz.DI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

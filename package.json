@@ -1,0 +1,13 @@
+{
+  "name": "com.kryzarel.monoinjector",
+  "version": "0.0.1",
+  "displayName": "Mono Injector",
+  "description": "A dependency injection framework for Unity MonoBehaviours.",
+  "dependencies": {
+    "com.kryzarel.dependencyinjector": "0.0.1"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Kryzarel"
+  }
+}
