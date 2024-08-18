@@ -7,7 +7,7 @@ namespace Kryz.MonoDI
 	{
 		public virtual void Awake()
 		{
-			DependencyInjector.RootContainer.Inject(this);
+			MonoInjector.Inject(this);
 		}
 	}
 
