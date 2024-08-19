@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Kryz.DI;
 using UnityEngine;
@@ -8,33 +7,37 @@ namespace Kryz.MonoDI
 {
 	public static class MonoInjector
 	{
-		public static readonly IReadOnlyList<Container?> Containers;
-		public static readonly IReadOnlyList<Container?> ParentContainers;
+		public static Container DefaultParent;
 
-		private static readonly Container?[] containers;
-		private static readonly Container[] parentContainers;
+		public static readonly IReadOnlyDictionary<Scene, Container> Containers;
+		public static readonly IReadOnlyDictionary<Scene, Container> ParentContainers;
+
+		private static readonly Dictionary<Scene, Container> containers;
+		private static readonly Dictionary<Scene, Container> parentContainers;
 
 		static MonoInjector()
 		{
-			Containers = containers = new Container[SceneManager.sceneCountInBuildSettings];
-			ParentContainers = parentContainers = new Container[SceneManager.sceneCountInBuildSettings];
-			Array.Fill(parentContainers, DependencyInjector.RootContainer);
+			DefaultParent = DependencyInjector.RootContainer;
+
+			int sceneCount = SceneManager.sceneCountInBuildSettings;
+			Containers = containers = new Dictionary<Scene, Container>(sceneCount);
+			ParentContainers = parentContainers = new Dictionary<Scene, Container>(sceneCount);
 		}
 
 		public static void Inject<T>(T obj) where T : MonoBehaviour
 		{
 			Scene scene = obj.gameObject.scene;
-			containers[scene.buildIndex]?.Inject(obj);
+			containers[scene].Inject(obj);
 		}
 
-		public static void SetParent(int sceneIndex, Container container)
+		public static void SetParent(Scene scene, Container parent)
 		{
-			if (containers[sceneIndex] != null)
+			if (containers[scene] != null)
 			{
-				Debug.LogError("Can't change parent Container of a loaded Scene. Please unload it first.");
+				Debug.LogError($"Can't change parent {nameof(Container)} of a loaded Scene ({scene.name}). Please unload it first.");
 				return;
 			}
-			parentContainers[sceneIndex] = container;
+			parentContainers[scene] = parent;
 		}
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
@@ -51,21 +54,25 @@ namespace Kryz.MonoDI
 			SceneManager.sceneUnloaded -= OnSceneUnloaded;
 			Application.quitting -= Quit;
 
-			Array.Clear(containers, 0, containers.Length);
-			Array.Clear(parentContainers, 0, parentContainers.Length);
+			containers.Clear();
+			parentContainers.Clear();
 		}
 
 		private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
-			int index = scene.buildIndex;
-			containers[index] = parentContainers[index].CreateChild();
+			if (!parentContainers.TryGetValue(scene, out Container parent))
+			{
+				parent = DefaultParent;
+			}
+			containers[scene] = parent?.CreateChild() ?? new Container();
 		}
 
 		private static void OnSceneUnloaded(Scene scene)
 		{
-			ref Container? container = ref containers[scene.buildIndex];
-			container?.Parent?.RemoveChild(container);
-			container = null;
+			Container container = containers[scene];
+			container.Parent?.RemoveChild(container);
+			containers.Remove(scene);
+			parentContainers.Remove(scene);
 		}
 	}
 }
