@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Kryz.DI;
 using UnityEngine;
@@ -24,7 +25,7 @@ namespace Kryz.MonoDI
 			ParentContainers = parentContainers = new Dictionary<Scene, Container>(sceneCount);
 
 			Application.quitting += Clear;
-			SceneManager.sceneLoaded += OnSceneLoaded;
+			// SceneManager.sceneLoaded += OnSceneLoaded; // This is useless because if fires AFTER Awake()
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 		}
 
@@ -43,11 +44,11 @@ namespace Kryz.MonoDI
 
 		public static void Inject<T>(T obj) where T : MonoBehaviour
 		{
-			if (obj != null)
-			{
-				Scene scene = obj.gameObject.scene;
-				containers[scene].Inject(obj);
-			}
+			if (obj == null)
+				return;
+
+			Scene scene = obj.gameObject.scene;
+			GetOrCreateContainer(scene).Inject(obj);
 		}
 
 		public static void SetParent(Scene scene, Container parent)
@@ -81,20 +82,30 @@ namespace Kryz.MonoDI
 			return success;
 		}
 
-		private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+		private static Container GetOrCreateContainer(Scene scene)
 		{
+			if (!scene.IsValid())
+			{
+				throw new ArgumentException($"Scene is invalid. Scene Name: {scene.name ?? "null"}", nameof(scene));
+			}
+			if (containers.TryGetValue(scene, out Container container))
+			{
+				return container;
+			}
 			if (!parentContainers.TryGetValue(scene, out Container? parent))
 			{
 				parent = DefaultParent;
 			}
-			containers[scene] = parent?.CreateChild() ?? new Container();
+			return containers[scene] = parent?.CreateChild() ?? new Container();
 		}
 
 		private static void OnSceneUnloaded(Scene scene)
 		{
-			Container container = containers[scene];
-			container.Parent?.RemoveChild(container);
-			containers.Remove(scene);
+			if (containers.TryGetValue(scene, out Container container))
+			{
+				container.Parent?.RemoveChild(container);
+				containers.Remove(scene);
+			}
 		}
 	}
 }
