@@ -25,7 +25,8 @@ namespace Kryz.MonoDI
 			ParentContainers = parentContainers = new Dictionary<Scene, Container>(sceneCount);
 
 			Application.quitting += Clear;
-			// SceneManager.sceneLoaded += OnSceneLoaded; // This is useless because if fires AFTER Awake()
+			// Don't use this. No need to register scenes that don't have any Injectable objects.
+			// SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 		}
 

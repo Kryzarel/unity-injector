@@ -5,7 +5,12 @@ namespace Kryz.MonoDI
 {
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
-		protected virtual void Awake()
+		protected void Start()
+		{
+			Init();
+		}
+
+		public void Init()
 		{
 			MonoInjector.Inject(this);
 		}
