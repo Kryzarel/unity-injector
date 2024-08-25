@@ -49,6 +49,10 @@ namespace Kryz.MonoDI
 				return;
 
 			Scene scene = obj.gameObject.scene;
+			if (!scene.isLoaded)
+			{
+				Debug.LogWarning($"Injecting {obj.GetType().Name} in {nameof(GameObject)} \"{obj.name}\", but its {nameof(Scene)} \"{scene.name}\" is not loaded. This may be unintended.", obj);
+			}
 			GetOrCreateContainer(scene).Inject(obj);
 		}
 
@@ -85,9 +89,12 @@ namespace Kryz.MonoDI
 
 		private static Container GetOrCreateContainer(Scene scene)
 		{
+			// TODO: This may not work as expected. Apparently it always returns false for scenes that are not loaded.
+			// https://discussions.unity.com/t/solved-scene-isvalid-returns-false-even-though-i-can-load-the-scene/640938
 			if (!scene.IsValid())
 			{
-				throw new ArgumentException($"Scene is invalid. Scene Name: {scene.name ?? "null"}", nameof(scene));
+				string name = string.IsNullOrEmpty(scene.name) ? "<unknown>" : $"\"{scene.name}\"";
+				throw new ArgumentException($"Can't get {nameof(Container)} for invalid {nameof(Scene)} {name}.", nameof(scene));
 			}
 			if (containers.TryGetValue(scene, out Container container))
 			{
