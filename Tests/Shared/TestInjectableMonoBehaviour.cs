@@ -2,7 +2,7 @@ using Kryz.DI.Tests;
 
 namespace Kryz.MonoDI.Tests
 {
-	public class InjectableMonoBehaviour1 : MonoBehaviour<IA, IB, IC>
+	public class TestInjectableMonoBehaviour : MonoBehaviour<IA, IB, IC>
 	{
 		public IA? A;
 		public IB? B;

@@ -6,7 +6,7 @@ using UnityEngine.TestTools;
 
 namespace Kryz.MonoDI.Tests
 {
-	public class SimpleTests
+	public class MonoInjectorTests
 	{
 		[Test]
 		public void TestClear()
