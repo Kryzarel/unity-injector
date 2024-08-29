@@ -37,17 +37,37 @@ namespace Kryz.MonoDI
 			parentContainers.Clear();
 		}
 
-		public static void Inject<T>(T obj) where T : MonoBehaviour
+		/// <summary>
+		/// Attempts to get the <see cref="Container"/> for a given <see cref="Scene"/>.
+		/// </summary>
+		/// <returns>The corresponding <see cref="Container"/>, or <see cref="null"/> if the <see cref="Scene"/> is not loaded.</returns>
+		public static Container? GetContainer(Scene scene)
 		{
-			if (obj == null)
-				return;
+			TryGetContainer(scene, out Container? container);
+			return container;
+		}
 
-			Scene scene = obj.gameObject.scene;
+		/// <summary>
+		/// Attempts to get the <see cref="Container"/> for a given <see cref="Scene"/>.
+		/// </summary>
+		/// <returns><see cref="true"/> if <see cref="Scene.isLoaded"/>, <see cref="false"/> otherwise.</returns>
+		public static bool TryGetContainer(Scene scene, out Container? container)
+		{
 			if (!scene.isLoaded)
 			{
-				Debug.LogWarning($"Injecting {obj.GetType().Name} in {nameof(GameObject)} \"{obj.name}\", but its {nameof(Scene)} \"{scene.name}\" is not loaded. This may be unintended.", obj);
+				container = null;
+				return false;
 			}
-			GetOrCreateContainer(scene).Inject(obj);
+			if (containers.TryGetValue(scene, out container))
+			{
+				return true;
+			}
+			if (!parentContainers.TryGetValue(scene, out Container? parent))
+			{
+				parent = DefaultParent;
+			}
+			container = containers[scene] = parent?.CreateChild() ?? new Container();
+			return true;
 		}
 
 		public static void SetParent(Scene scene, Container parent)
@@ -79,19 +99,6 @@ namespace Kryz.MonoDI
 				}
 			}
 			return success;
-		}
-
-		private static Container GetOrCreateContainer(Scene scene)
-		{
-			if (containers.TryGetValue(scene, out Container container))
-			{
-				return container;
-			}
-			if (!parentContainers.TryGetValue(scene, out Container? parent))
-			{
-				parent = DefaultParent;
-			}
-			return containers[scene] = parent?.CreateChild() ?? new Container();
 		}
 
 		private static void OnSceneUnloaded(Scene scene)

@@ -12,7 +12,7 @@ namespace Kryz.MonoDI
 
 		public void Init()
 		{
-			MonoInjector.Inject(this);
+			MonoInjector.GetContainer(gameObject.scene)!.Inject(this);
 		}
 	}
 
