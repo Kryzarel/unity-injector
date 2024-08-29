@@ -16,6 +16,8 @@ namespace Kryz.MonoDI.Tests
 		private const string Scene1 = "Packages/com.kryzarel.monoinjector/Tests/Shared/Test Scene MonoInjector 1.unity";
 		private const string Scene2 = "Packages/com.kryzarel.monoinjector/Tests/Shared/Test Scene MonoInjector 2.unity";
 
+		private static readonly string[] scenes = { Scene1, Scene2 };
+
 		[UnityTearDown]
 		public IEnumerator UnityTearDown()
 		{
@@ -26,82 +28,140 @@ namespace Kryz.MonoDI.Tests
 		}
 
 		[UnityTest]
-		public IEnumerator TestDifferentContainers([Values(true, false)] bool useDefaultParent)
+		public IEnumerator TestDifferentParents([Values(true, false)] bool useDefaultParent)
 		{
 			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			yield return new EnterPlayMode();
 
-			Container container1 = new();
-			SetupContainer(container1, RegisterType.Scoped);
-			SetupScene(Scene1, useDefaultParent, container1, out Scene scene1);
-			while (!scene1.isLoaded)
-			{
-				yield return null;
-			}
-			TestInjectableMonoBehaviour injectable1 = GetAndValidateInjectable(container1, scene1);
+			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
 
-			Container container2 = new();
-			SetupContainer(container2, RegisterType.Scoped);
-			SetupScene(Scene2, useDefaultParent, container2, out Scene scene2);
-			while (!scene2.isLoaded)
+			for (int i = 0; i < scenes.Length; i++)
 			{
-				yield return null;
+				Container container = new();
+				SetupContainer(container, RegisterType.Scoped);
+				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
+				while (!scene.isLoaded)
+				{
+					yield return null;
+				}
+				testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
+				ValidateInjectable(testInjectables[i], container);
 			}
-			TestInjectableMonoBehaviour injectable2 = GetAndValidateInjectable(container2, scene2);
 
-			// injectable1 and injectable2 should have different objects
-			Assert.AreNotEqual(injectable1.A, injectable2.A);
-			Assert.AreNotEqual(injectable1.B, injectable2.B);
-			Assert.AreNotEqual(injectable1.C, injectable2.C);
+			for (int i = 0; i < testInjectables.Length; i++)
+			{
+				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
+				for (int j = i + 1; j < testInjectables.Length; j++)
+				{
+					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
+
+					// injectables must have different objects
+					Assert.AreNotEqual(injectable1.A, injectable2.A);
+					Assert.AreNotEqual(injectable1.B, injectable2.B);
+					Assert.AreNotEqual(injectable1.C, injectable2.C);
+				}
+			}
 		}
 
 		[UnityTest]
-		public IEnumerator TestSameContainers([Values(true, false)] bool useDefaultParent)
+		public IEnumerator TestSameParent([Values(true, false)] bool useDefaultParent)
 		{
 			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			yield return new EnterPlayMode();
+
+			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
 
 			Container container = new();
 			SetupContainer(container, RegisterType.Scoped);
 
-			SetupScene(Scene1, useDefaultParent, container, out Scene scene1);
-			while (!scene1.isLoaded)
+			for (int i = 0; i < scenes.Length; i++)
 			{
-				yield return null;
+				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
+				while (!scene.isLoaded)
+				{
+					yield return null;
+				}
+				testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
+				ValidateInjectable(testInjectables[i], container);
 			}
-			TestInjectableMonoBehaviour injectable1 = GetAndValidateInjectable(container, scene1);
 
-			SetupScene(Scene2, useDefaultParent, container, out Scene scene2);
-			while (!scene2.isLoaded)
+			for (int i = 0; i < testInjectables.Length; i++)
 			{
-				yield return null;
-			}
-			TestInjectableMonoBehaviour injectable2 = GetAndValidateInjectable(container, scene2);
+				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
+				for (int j = i + 1; j < testInjectables.Length; j++)
+				{
+					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
 
-			// injectable1 and injectable2 should have the same objects
-			Assert.AreEqual(injectable1.A, injectable2.A);
-			Assert.AreEqual(injectable1.B, injectable2.B);
-			Assert.AreEqual(injectable1.C, injectable2.C);
+					// injectables must have the same objects
+					Assert.AreEqual(injectable1.A, injectable2.A);
+					Assert.AreEqual(injectable1.B, injectable2.B);
+					Assert.AreEqual(injectable1.C, injectable2.C);
+				}
+			}
 		}
 
-		private static TestInjectableMonoBehaviour GetAndValidateInjectable(Container parentContainer, Scene scene)
+		[UnityTest]
+		public IEnumerator TestDirectContainer()
 		{
-			TestInjectableMonoBehaviour injectable = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
+			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			yield return new EnterPlayMode();
+
+			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
+
+			for (int i = 0; i < scenes.Length; i++)
+			{
+				SceneManager.sceneLoaded += SceneLoaded;
+				Scene scene = EditorSceneManager.LoadSceneInPlayMode(scenes[i], new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive });
+				while (!scene.isLoaded)
+				{
+					yield return null;
+				}
+				SceneManager.sceneLoaded -= SceneLoaded;
+
+				void SceneLoaded(Scene scene, LoadSceneMode mode)
+				{
+					// Use the SceneLoaded event to setup the container before Start() runs
+					SetupContainer(MonoInjector.GetContainer(scene)!, RegisterType.Scoped);
+					testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
+				}
+			}
+
+			for (int i = 0; i < testInjectables.Length; i++)
+			{
+				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
+				ValidateInjectable(injectable1, null);
+
+				for (int j = i + 1; j < testInjectables.Length; j++)
+				{
+					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
+
+					// injectables must have different objects
+					Assert.AreNotEqual(injectable1.A, injectable2.A);
+					Assert.AreNotEqual(injectable1.B, injectable2.B);
+					Assert.AreNotEqual(injectable1.C, injectable2.C);
+				}
+			}
+		}
+
+		private static void ValidateInjectable(TestInjectableMonoBehaviour injectable, Container? parentContainer)
+		{
 			Assert.IsNotNull(injectable);
 
 			Assert.IsNotNull(injectable.A);
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Container sceneContainer = MonoInjector.Containers[scene];
+			Container sceneContainer = MonoInjector.Containers[injectable.gameObject.scene];
 			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
 			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
 			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
 
-			Assert.AreEqual(parentContainer.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(parentContainer.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(parentContainer.GetObject<IC>(), injectable.C);
-			return injectable;
+			if (parentContainer != null)
+			{
+				Assert.AreEqual(parentContainer.GetObject<IA>(), injectable.A);
+				Assert.AreEqual(parentContainer.GetObject<IB>(), injectable.B);
+				Assert.AreEqual(parentContainer.GetObject<IC>(), injectable.C);
+			}
 		}
 
 		private static void SetupScene(string scenePath, bool useDefaultParent, Container container, out Scene scene)
