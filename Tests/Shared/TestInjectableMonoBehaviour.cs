@@ -1,6 +1,6 @@
 using Kryz.DI.Tests;
 
-namespace Kryz.MonoDI.Tests
+namespace Kryz.UnityDI.Tests
 {
 	public class TestInjectableMonoBehaviour : MonoBehaviour<IA, IB, IC>
 	{

@@ -1,7 +1,7 @@
 using Kryz.DI;
 using UnityEngine;
 
-namespace Kryz.MonoDI
+namespace Kryz.UnityDI
 {
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
@@ -12,7 +12,7 @@ namespace Kryz.MonoDI
 
 		public void Init()
 		{
-			MonoInjector.GetContainer(gameObject.scene)!.Inject(this);
+			UnityInjector.GetContainer(gameObject.scene)!.Inject(this);
 		}
 	}
 

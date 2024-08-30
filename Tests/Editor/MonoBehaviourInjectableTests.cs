@@ -9,12 +9,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static Kryz.DI.Tests.ContainerTestHelper;
 
-namespace Kryz.MonoDI.Tests
+namespace Kryz.UnityDI.Tests
 {
 	public class MonoBehaviourInjectableTests
 	{
-		private const string Scene1 = "Packages/com.kryzarel.monoinjector/Tests/Shared/Test Scene MonoInjector 1.unity";
-		private const string Scene2 = "Packages/com.kryzarel.monoinjector/Tests/Shared/Test Scene MonoInjector 2.unity";
+		private const string Scene1 = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene MonoInjectable 1.unity";
+		private const string Scene2 = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene MonoInjectable 2.unity";
 
 		private static readonly string[] scenes = { Scene1, Scene2 };
 
@@ -121,7 +121,7 @@ namespace Kryz.MonoDI.Tests
 				void SceneLoaded(Scene scene, LoadSceneMode mode)
 				{
 					// Use the SceneLoaded event to setup the container before Start() runs
-					SetupContainer(MonoInjector.GetContainer(scene)!, RegisterType.Scoped);
+					SetupContainer(UnityInjector.GetContainer(scene)!, RegisterType.Scoped);
 					testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
 				}
 			}
@@ -151,7 +151,7 @@ namespace Kryz.MonoDI.Tests
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Container sceneContainer = MonoInjector.Containers[injectable.gameObject.scene];
+			Container sceneContainer = UnityInjector.Containers[injectable.gameObject.scene];
 			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
 			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
 			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
@@ -170,11 +170,11 @@ namespace Kryz.MonoDI.Tests
 
 			if (useDefaultParent)
 			{
-				MonoInjector.DefaultParent = container;
+				UnityInjector.DefaultParent = container;
 			}
 			else
 			{
-				MonoInjector.SetParent(scene, container);
+				UnityInjector.SetParent(scene, container);
 			}
 		}
 	}

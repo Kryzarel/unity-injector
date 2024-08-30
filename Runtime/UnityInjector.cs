@@ -3,9 +3,9 @@ using Kryz.DI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Kryz.MonoDI
+namespace Kryz.UnityDI
 {
-	public static class MonoInjector
+	public static class UnityInjector
 	{
 		public static Container? DefaultParent;
 
@@ -15,7 +15,7 @@ namespace Kryz.MonoDI
 		private static readonly Dictionary<Scene, Container> containers;
 		private static readonly Dictionary<Scene, Container> parentContainers;
 
-		static MonoInjector()
+		static UnityInjector()
 		{
 			DefaultParent = DependencyInjector.RootContainer;
 
@@ -23,13 +23,19 @@ namespace Kryz.MonoDI
 			Containers = containers = new Dictionary<Scene, Container>(sceneCount);
 			ParentContainers = parentContainers = new Dictionary<Scene, Container>(sceneCount);
 
-			Application.quitting += Clear;
+			Application.quitting += Reset;
 			// Don't use this. No need to register scenes that don't have any Injectable objects.
 			// SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 		}
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		private static void Reset()
+		{
+			DependencyInjector.RootContainer.Clear();
+			Clear();
+		}
+
 		public static void Clear()
 		{
 			DefaultParent = DependencyInjector.RootContainer;
