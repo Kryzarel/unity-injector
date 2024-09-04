@@ -7,7 +7,11 @@ namespace Kryz.UnityDI
 	{
 		protected void OnEnable()
 		{
-			Init();
+			// Avoid Injection Exceptions during edit time
+			if (Application.isPlaying)
+			{
+				Init();
+			}
 		}
 
 		public void Init()

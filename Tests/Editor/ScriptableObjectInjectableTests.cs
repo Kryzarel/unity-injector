@@ -1,0 +1,88 @@
+using System.Collections;
+using Kryz.DI;
+using Kryz.DI.Tests;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+using static Kryz.DI.Tests.ContainerTestHelper;
+
+namespace Kryz.UnityDI.Tests
+{
+	public class ScriptableObjectInjectableTests
+	{
+		private const string Scene = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene ScriptableInjectable.unity";
+		private const string Asset = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Injectable Scriptable Object.asset";
+
+		private readonly Container container = new();
+
+		[UnitySetUp]
+		public IEnumerator UnitySetUp()
+		{
+			if (!EditorApplication.isPlayingOrWillChangePlaymode)
+			{
+				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+				yield return new EnterPlayMode();
+
+				container.Clear();
+				SetupContainer(container, RegisterType.Scoped);
+				UnityInjector.DefaultParent = container;
+			}
+		}
+
+		[OneTimeTearDown]
+		public void OneTimeTearDown()
+		{
+			if (EditorApplication.isPlayingOrWillChangePlaymode)
+			{
+				EditorApplication.isPlaying = false;
+			}
+			container.Clear();
+		}
+
+		[UnityTest]
+		public IEnumerator TestSceneReference()
+		{
+			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(Scene, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Single });
+			TestInjectableScriptableObject injectable = (TestInjectableScriptableObject)Object.FindAnyObjectByType<MonoWithScriptableObjectReference>().ScriptableObject;
+
+			Assert.IsNotNull(injectable.A);
+			Assert.IsNotNull(injectable.B);
+			Assert.IsNotNull(injectable.C);
+
+			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+		}
+
+		[Test]
+		public void TestProjectAsset()
+		{
+			TestInjectableScriptableObject injectable = AssetDatabase.LoadAssetAtPath<TestInjectableScriptableObject>(Asset);
+
+			Assert.IsNotNull(injectable.A);
+			Assert.IsNotNull(injectable.B);
+			Assert.IsNotNull(injectable.C);
+
+			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+		}
+
+		[Test]
+		public void TestCreatedAsset()
+		{
+			TestInjectableScriptableObject injectable = ScriptableObject.CreateInstance<TestInjectableScriptableObject>();
+
+			Assert.IsNotNull(injectable.A);
+			Assert.IsNotNull(injectable.B);
+			Assert.IsNotNull(injectable.C);
+
+			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+		}
+	}
+}
