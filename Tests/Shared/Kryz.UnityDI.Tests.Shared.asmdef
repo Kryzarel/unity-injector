@@ -1,17 +1,14 @@
 {
-    "name": "Kryz.MonoDI.Tests.Editor",
-    "rootNamespace": "Kryz.MonoDI.Tests.Editor",
+    "name": "Kryz.UnityDI.Tests.Shared",
+    "rootNamespace": "Kryz.UnityDI.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Kryz.MonoDI",
-        "Kryz.MonoDI.Tests.Shared",
+        "Kryz.UnityDI",
         "Kryz.DI",
         "Kryz.DI.Tests"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,

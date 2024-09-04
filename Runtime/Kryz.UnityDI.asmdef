@@ -1,6 +1,6 @@
 {
-    "name": "Kryz.MonoDI",
-    "rootNamespace": "Kryz.MonoDI",
+    "name": "Kryz.UnityDI",
+    "rootNamespace": "Kryz.UnityDI",
     "references": [
         "Kryz.DI"
     ],
