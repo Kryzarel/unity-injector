@@ -1,10 +1,10 @@
 {
-  "name": "com.kryzarel.unityinjector",
+  "name": "com.kryzarel.unity-injector",
   "version": "0.0.1",
   "displayName": "Unity Injector",
   "description": "A dependency injection framework for Unity.",
   "dependencies": {
-    "com.kryzarel.dependencyinjector": "0.0.1"
+    "com.kryzarel.dependency-injector": "0.0.1"
   },
   "license": "MIT",
   "author": {
