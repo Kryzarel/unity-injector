@@ -9,12 +9,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static Kryz.DI.Tests.ContainerTestHelper;
 
-namespace Kryz.UnityDI.Tests
+namespace Kryz.UnityDI.Tests.Editor
 {
 	public class MonoBehaviourInjectableTests
 	{
-		private const string Scene1 = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene MonoInjectable 1.unity";
-		private const string Scene2 = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene MonoInjectable 2.unity";
+		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 1.unity";
+		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 2.unity";
 
 		private static readonly string[] scenes = { Scene1, Scene2 };
 

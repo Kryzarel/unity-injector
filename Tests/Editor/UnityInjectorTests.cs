@@ -4,7 +4,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine.TestTools;
 
-namespace Kryz.UnityDI.Tests
+namespace Kryz.UnityDI.Tests.Editor
 {
 	public class UnityInjectorTests
 	{

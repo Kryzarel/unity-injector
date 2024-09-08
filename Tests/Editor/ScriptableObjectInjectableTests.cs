@@ -9,12 +9,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using static Kryz.DI.Tests.ContainerTestHelper;
 
-namespace Kryz.UnityDI.Tests
+namespace Kryz.UnityDI.Tests.Editor
 {
 	public class ScriptableObjectInjectableTests
 	{
-		private const string Scene = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Scene ScriptableInjectable.unity";
-		private const string Asset = "Packages/com.kryzarel.unityinjector/Tests/Shared/Test Injectable Scriptable Object.asset";
+		private static readonly string Scene = PackagePath.Path + "/Tests/Shared/Test Scene ScriptableInjectable.unity";
+		private static readonly string Asset = PackagePath.Path + "/Tests/Shared/Test Injectable Scriptable Object.asset";
 
 		private readonly Container container = new();
 
@@ -46,7 +46,14 @@ namespace Kryz.UnityDI.Tests
 		public IEnumerator TestSceneReference()
 		{
 			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(Scene, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Single });
-			TestInjectableScriptableObject injectable = (TestInjectableScriptableObject)Object.FindAnyObjectByType<MonoWithScriptableObjectReference>().ScriptableObject;
+
+			MonoWithScriptableObjectReference? mono = Object.FindAnyObjectByType<MonoWithScriptableObjectReference>();
+			Assert.IsNotNull(mono);
+
+			ScriptableObject? scriptableObject = mono.ScriptableObject;
+			Assert.IsNotNull(scriptableObject);
+
+			TestInjectableScriptableObject injectable = (TestInjectableScriptableObject)scriptableObject!;
 
 			Assert.IsNotNull(injectable.A);
 			Assert.IsNotNull(injectable.B);
