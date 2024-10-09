@@ -1,7 +1,7 @@
 {
   "name": "com.kryzarel.unity-injector",
   "version": "0.0.1",
-  "displayName": "Unity Injector",
+  "displayName": "Kryz - Unity Injector",
   "description": "A dependency injection framework for Unity.",
   "dependencies": {
     "com.kryzarel.dependency-injector": "0.0.1"
