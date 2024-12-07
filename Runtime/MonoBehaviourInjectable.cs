@@ -9,10 +9,13 @@ namespace Kryz.UnityDI
 
 		public Container Container => container ??= UnityInjector.GetContainer(gameObject.scene)!;
 
-		protected virtual void Start()
+		private void Start()
 		{
 			Container.Inject(this);
+			Init();
 		}
+
+		protected virtual void Init() { }
 	}
 
 	public abstract class MonoBehaviour<T1> : MonoBehaviourInjectable
