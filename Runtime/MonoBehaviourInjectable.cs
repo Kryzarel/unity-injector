@@ -1,3 +1,4 @@
+using System;
 using Kryz.DI;
 using UnityEngine;
 
@@ -7,11 +8,16 @@ namespace Kryz.UnityDI
 	{
 		private Container? container;
 
-		public Container Container => container ??= UnityInjector.GetContainer(gameObject.scene)!;
+		public Container? Container => container;
 
 		private void Start()
 		{
-			Container.Inject(this);
+			container = UnityInjector.GetContainer(gameObject.scene);
+			if (container == null)
+			{
+				throw new NullReferenceException($"Failed to get {typeof(Container).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+			}
+			container.Inject(this);
 			Init();
 		}
 
