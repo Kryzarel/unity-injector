@@ -37,8 +37,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			for (int i = 0; i < scenes.Length; i++)
 			{
-				Container container = new();
-				SetupContainer(container, RegisterType.Scoped);
+				IContainer container = SetupContainer(Lifetime.Singleton);
 				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
 				while (!scene.isLoaded)
 				{
@@ -71,8 +70,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
 
-			Container container = new();
-			SetupContainer(container, RegisterType.Scoped);
+			IContainer container = SetupContainer(Lifetime.Singleton);
 
 			for (int i = 0; i < scenes.Length; i++)
 			{
@@ -121,7 +119,7 @@ namespace Kryz.UnityDI.Tests.Editor
 				void SceneLoaded(Scene scene, LoadSceneMode mode)
 				{
 					// Use the SceneLoaded event to setup the container before Start() runs
-					SetupContainer(UnityInjector.GetContainer(scene)!, RegisterType.Scoped);
+					// SetupContainer(UnityInjector.GetContainer(scene)!, RegisterType.Scoped);
 					testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
 				}
 			}
@@ -143,7 +141,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			}
 		}
 
-		private static void ValidateInjectable(TestInjectableMonoBehaviour injectable, Container? parentContainer)
+		private static void ValidateInjectable(TestInjectableMonoBehaviour injectable, IContainer? parentContainer)
 		{
 			Assert.IsNotNull(injectable);
 
@@ -151,7 +149,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Container sceneContainer = UnityInjector.Containers[injectable.gameObject.scene];
+			IContainer sceneContainer = UnityInjector.Containers[injectable.gameObject.scene];
 			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
 			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
 			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
@@ -164,7 +162,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			}
 		}
 
-		private static void SetupScene(string scenePath, bool useDefaultParent, Container container, out Scene scene)
+		private static void SetupScene(string scenePath, bool useDefaultParent, IContainer container, out Scene scene)
 		{
 			scene = EditorSceneManager.LoadSceneInPlayMode(scenePath, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive });
 

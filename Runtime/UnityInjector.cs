@@ -7,21 +7,21 @@ namespace Kryz.UnityDI
 {
 	public static class UnityInjector
 	{
-		public static Container? DefaultParent;
+		public static IContainer? DefaultParent;
 
-		public static readonly IReadOnlyDictionary<Scene, Container> Containers;
-		public static readonly IReadOnlyDictionary<Scene, Container> ParentContainers;
+		public static readonly IReadOnlyDictionary<Scene, IContainer> Containers;
+		public static readonly IReadOnlyDictionary<Scene, IContainer> ParentContainers;
 
-		private static readonly Dictionary<Scene, Container> containers;
-		private static readonly Dictionary<Scene, Container> parentContainers;
+		private static readonly Dictionary<Scene, IContainer> containers;
+		private static readonly Dictionary<Scene, IContainer> parentContainers;
 
 		static UnityInjector()
 		{
 			DefaultParent = DependencyInjector.RootContainer;
 
 			int sceneCount = SceneManager.sceneCountInBuildSettings;
-			Containers = containers = new Dictionary<Scene, Container>(sceneCount);
-			ParentContainers = parentContainers = new Dictionary<Scene, Container>(sceneCount);
+			Containers = containers = new Dictionary<Scene, IContainer>(sceneCount);
+			ParentContainers = parentContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
 			Application.quitting += Reset;
 			// Don't use this. No need to register scenes that don't have any Injectable objects.
@@ -32,7 +32,9 @@ namespace Kryz.UnityDI
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void Reset()
 		{
-			DependencyInjector.RootContainer.Clear();
+			// TODO: How to handle this?
+			// DependencyInjector.RootContainer.Clear();
+
 			Clear();
 		}
 
@@ -44,20 +46,20 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Attempts to get the <see cref="Container"/> for a given <see cref="Scene"/>.
+		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns>The corresponding <see cref="Container"/>, or <see cref="null"/> if the <see cref="Scene"/> is not loaded.</returns>
-		public static Container? GetContainer(Scene scene)
+		/// <returns>The corresponding <see cref="IContainer"/>, or <see cref="null"/> if the <see cref="Scene"/> is not loaded.</returns>
+		public static IContainer? GetContainer(Scene scene)
 		{
-			TryGetContainer(scene, out Container? container);
+			TryGetContainer(scene, out IContainer? container);
 			return container;
 		}
 
 		/// <summary>
-		/// Attempts to get the <see cref="Container"/> for a given <see cref="Scene"/>.
+		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
 		/// <returns><see cref="true"/> if <see cref="Scene.isLoaded"/>, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetContainer(Scene scene, out Container? container)
+		public static bool TryGetContainer(Scene scene, out IContainer? container)
 		{
 			if (!scene.isLoaded)
 			{
@@ -68,19 +70,19 @@ namespace Kryz.UnityDI
 			{
 				return true;
 			}
-			if (!parentContainers.TryGetValue(scene, out Container? parent))
+			if (!parentContainers.TryGetValue(scene, out IContainer? parent))
 			{
 				parent = DefaultParent;
 			}
-			container = containers[scene] = parent?.CreateChild() ?? new Container();
+			container = containers[scene] = parent?.CreateScope() ?? new Builder().Build();
 			return true;
 		}
 
-		public static void SetParent(Scene scene, Container parent)
+		public static void SetParent(Scene scene, IContainer parent)
 		{
 			if (containers.ContainsKey(scene))
 			{
-				Debug.LogWarning($"Changing the parent {nameof(Container)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
+				Debug.LogWarning($"Changing the parent {nameof(IContainer)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
 			}
 			parentContainers[scene] = parent;
 		}
@@ -89,15 +91,15 @@ namespace Kryz.UnityDI
 		{
 			if (containers.ContainsKey(scene))
 			{
-				Debug.LogWarning($"Changing the parent {nameof(Container)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
+				Debug.LogWarning($"Changing the parent {nameof(IContainer)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
 			}
 			return parentContainers.Remove(scene);
 		}
 
-		public static bool RemoveParent(Container container)
+		public static bool RemoveParent(IContainer container)
 		{
 			bool success = false;
-			foreach (KeyValuePair<Scene, Container> item in parentContainers)
+			foreach (KeyValuePair<Scene, IContainer> item in parentContainers)
 			{
 				if (item.Value == container)
 				{
@@ -109,9 +111,9 @@ namespace Kryz.UnityDI
 
 		private static void OnSceneUnloaded(Scene scene)
 		{
-			if (containers.TryGetValue(scene, out Container container))
+			if (containers.TryGetValue(scene, out IContainer container))
 			{
-				container.Parent?.RemoveChild(container);
+				container.Dispose();
 				containers.Remove(scene);
 			}
 		}

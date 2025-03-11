@@ -6,18 +6,18 @@ namespace Kryz.UnityDI
 {
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
-		private Container? container;
+		private IContainer? container;
 
-		public Container? Container => container;
+		public IContainer? Container => container;
 
 		private void Start()
 		{
 			container = UnityInjector.GetContainer(gameObject.scene);
 			if (container == null)
 			{
-				throw new NullReferenceException($"Failed to get {typeof(Container).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+				throw new NullReferenceException($"Failed to get {typeof(IContainer).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 			}
-			container.Inject(this);
+			container.Injector.Inject(this, container);
 			Init();
 		}
 

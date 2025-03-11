@@ -16,7 +16,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		private static readonly string Scene = PackagePath.Path + "/Tests/Shared/Test Scene ScriptableInjectable.unity";
 		private static readonly string Asset = PackagePath.Path + "/Tests/Shared/Test Injectable Scriptable Object.asset";
 
-		private readonly Container container = new();
+		private IContainer container = null!;
 
 		[UnitySetUp]
 		public IEnumerator UnitySetUp()
@@ -25,10 +25,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
-
-				container.Clear();
-				SetupContainer(container, RegisterType.Scoped);
-				UnityInjector.DefaultParent = container;
+				container = UnityInjector.DefaultParent = SetupContainer(Lifetime.Singleton);
 			}
 		}
 
@@ -39,7 +36,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorApplication.isPlaying = false;
 			}
-			container.Clear();
+			UnityInjector.DefaultParent = null;
 		}
 
 		[UnityTest]
