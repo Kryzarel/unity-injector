@@ -37,7 +37,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			for (int i = 0; i < scenes.Length; i++)
 			{
-				IContainer container = SetupContainer(Lifetime.Singleton);
+				IContainer container = GetContainerWithRegistrations(Lifetime.Singleton);
 				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
 				while (!scene.isLoaded)
 				{
@@ -70,7 +70,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
 
-			IContainer container = SetupContainer(Lifetime.Singleton);
+			IContainer container = GetContainerWithRegistrations(Lifetime.Singleton);
 
 			for (int i = 0; i < scenes.Length; i++)
 			{

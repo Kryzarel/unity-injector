@@ -25,7 +25,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
-				container = UnityInjector.DefaultParent = SetupContainer(Lifetime.Singleton);
+				container = UnityInjector.DefaultParent = GetContainerWithRegistrations(Lifetime.Singleton);
 			}
 		}
 
