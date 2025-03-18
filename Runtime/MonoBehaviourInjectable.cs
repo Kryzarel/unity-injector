@@ -17,7 +17,7 @@ namespace Kryz.UnityDI
 			{
 				throw new NullReferenceException($"Failed to get {typeof(IContainer).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 			}
-			container.Injector.Inject(this, container);
+			container.Inject(this);
 			Init();
 		}
 
