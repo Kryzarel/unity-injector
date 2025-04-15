@@ -25,7 +25,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
-				container = UnityInjector.DefaultParent = GetContainerWithRegistrations(Lifetime.Singleton);
+				container = UnityInjector.DefaultContainer = GetContainerWithRegistrations(Lifetime.Singleton);
 			}
 		}
 
@@ -36,7 +36,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorApplication.isPlaying = false;
 			}
-			UnityInjector.DefaultParent = null;
+			UnityInjector.DefaultContainer = null;
 		}
 
 		[UnityTest]

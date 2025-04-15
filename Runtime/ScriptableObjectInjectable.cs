@@ -16,8 +16,8 @@ namespace Kryz.UnityDI
 
 		public void Init()
 		{
-			IContainer container = UnityInjector.DefaultParent ?? DependencyInjector.RootContainer;
-			container.Injector.Inject(this, container);
+			IContainer? container = UnityInjector.DefaultContainer;
+			container?.Injector.Inject(this, container);
 		}
 	}
 

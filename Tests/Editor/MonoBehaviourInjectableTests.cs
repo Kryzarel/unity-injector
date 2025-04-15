@@ -98,49 +98,6 @@ namespace Kryz.UnityDI.Tests.Editor
 			}
 		}
 
-		[UnityTest]
-		public IEnumerator TestDirectContainer()
-		{
-			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-			yield return new EnterPlayMode();
-
-			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
-
-			for (int i = 0; i < scenes.Length; i++)
-			{
-				SceneManager.sceneLoaded += SceneLoaded;
-				Scene scene = EditorSceneManager.LoadSceneInPlayMode(scenes[i], new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive });
-				while (!scene.isLoaded)
-				{
-					yield return null;
-				}
-				SceneManager.sceneLoaded -= SceneLoaded;
-
-				void SceneLoaded(Scene scene, LoadSceneMode mode)
-				{
-					// Use the SceneLoaded event to setup the container before Start() runs
-					// SetupContainer(UnityInjector.GetContainer(scene)!, RegisterType.Scoped);
-					testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
-				}
-			}
-
-			for (int i = 0; i < testInjectables.Length; i++)
-			{
-				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
-				ValidateInjectable(injectable1, null);
-
-				for (int j = i + 1; j < testInjectables.Length; j++)
-				{
-					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
-
-					// injectables must have different objects
-					Assert.AreNotEqual(injectable1.A, injectable2.A);
-					Assert.AreNotEqual(injectable1.B, injectable2.B);
-					Assert.AreNotEqual(injectable1.C, injectable2.C);
-				}
-			}
-		}
-
 		private static void ValidateInjectable(TestInjectableMonoBehaviour injectable, IContainer? parentContainer)
 		{
 			Assert.IsNotNull(injectable);
@@ -168,7 +125,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			if (useDefaultParent)
 			{
-				UnityInjector.DefaultParent = container;
+				UnityInjector.DefaultContainer = container;
 			}
 			else
 			{

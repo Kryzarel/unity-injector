@@ -7,7 +7,7 @@ namespace Kryz.UnityDI
 {
 	public static class UnityInjector
 	{
-		public static IContainer? DefaultParent;
+		public static IContainer? DefaultContainer;
 
 		public static readonly IReadOnlyDictionary<Scene, IContainer> Containers;
 		public static readonly IReadOnlyDictionary<Scene, IContainer> ParentContainers;
@@ -17,30 +17,21 @@ namespace Kryz.UnityDI
 
 		static UnityInjector()
 		{
-			DefaultParent = DependencyInjector.RootContainer;
-
 			int sceneCount = SceneManager.sceneCountInBuildSettings;
 			Containers = containers = new Dictionary<Scene, IContainer>(sceneCount);
 			ParentContainers = parentContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
-			Application.quitting += Reset;
 			// Don't use this. No need to register scenes that don't have any Injectable objects.
 			// SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
+			Application.quitting += Clear;
 		}
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-		private static void Reset()
-		{
-			// TODO: How to handle this?
-			// DependencyInjector.RootContainer.Clear();
-
-			Clear();
-		}
-
 		public static void Clear()
 		{
-			DefaultParent = DependencyInjector.RootContainer;
+			DefaultContainer?.Dispose();
+			DefaultContainer = null;
 			containers.Clear();
 			parentContainers.Clear();
 		}
@@ -72,7 +63,7 @@ namespace Kryz.UnityDI
 			}
 			if (!parentContainers.TryGetValue(scene, out IContainer? parent))
 			{
-				parent = DefaultParent;
+				parent = DefaultContainer;
 			}
 			container = containers[scene] = parent?.CreateScope() ?? new Builder().Build();
 			return true;
