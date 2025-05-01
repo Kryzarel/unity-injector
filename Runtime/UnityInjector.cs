@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Kryz.DI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,42 +9,68 @@ namespace Kryz.UnityDI
 {
 	public static class UnityInjector
 	{
-		public static IContainer? DefaultParent;
+		public static IContainer? CurrentContainer => containers.Count > 0 ? containers[^1] : null;
 
-		public static readonly IReadOnlyDictionary<Scene, IContainer> Containers;
-		public static readonly IReadOnlyDictionary<Scene, IContainer> ParentContainers;
+		public static readonly IReadOnlyList<IContainer> Containers;
+		public static readonly IReadOnlyDictionary<Scene, IContainer> SceneContainers;
 
-		private static readonly Dictionary<Scene, IContainer> containers;
-		private static readonly Dictionary<Scene, IContainer> parentContainers;
+		private static readonly List<IContainer> containers;
+		private static readonly Dictionary<Scene, IContainer> sceneContainers;
 
 		static UnityInjector()
 		{
-			DefaultParent = DependencyInjector.RootContainer;
-
 			int sceneCount = SceneManager.sceneCountInBuildSettings;
-			Containers = containers = new Dictionary<Scene, IContainer>(sceneCount);
-			ParentContainers = parentContainers = new Dictionary<Scene, IContainer>(sceneCount);
+			Containers = containers = new List<IContainer>();
+			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
-			Application.quitting += Reset;
 			// Don't use this. No need to register scenes that don't have any Injectable objects.
 			// SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
+			Application.quitting += Clear;
+		}
+
+		private static void OnSceneUnloaded(Scene scene)
+		{
+			if (sceneContainers.TryGetValue(scene, out IContainer container))
+			{
+				container.Dispose();
+				sceneContainers.Remove(scene);
+			}
 		}
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-		private static void Reset()
-		{
-			// TODO: How to handle this?
-			// DependencyInjector.RootContainer.Clear();
-
-			Clear();
-		}
-
 		public static void Clear()
 		{
-			DefaultParent = DependencyInjector.RootContainer;
+			foreach (IContainer container in containers)
+			{
+				container.Dispose();
+			}
 			containers.Clear();
-			parentContainers.Clear();
+
+			foreach (KeyValuePair<Scene, IContainer> item in sceneContainers)
+			{
+				item.Value.Dispose();
+			}
+			sceneContainers.Clear();
+		}
+
+		/// <summary>
+		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
+		/// </summary>
+		/// <returns><see cref="true"/> if <see cref="Scene.isLoaded"/>, <see cref="false"/> otherwise.</returns>
+		public static bool TryGetContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
+		{
+			if (!scene.isLoaded)
+			{
+				container = null;
+				return false;
+			}
+			if (sceneContainers.TryGetValue(scene, out container))
+			{
+				return true;
+			}
+			container = sceneContainers[scene] = CurrentContainer?.CreateScope() ?? new Builder().Build();
+			return true;
 		}
 
 		/// <summary>
@@ -55,67 +83,31 @@ namespace Kryz.UnityDI
 			return container;
 		}
 
-		/// <summary>
-		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
-		/// </summary>
-		/// <returns><see cref="true"/> if <see cref="Scene.isLoaded"/>, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetContainer(Scene scene, out IContainer? container)
+		public static void PushContainer(Action<IScopeBuilder> builderAction)
 		{
-			if (!scene.isLoaded)
-			{
-				container = null;
-				return false;
-			}
-			if (containers.TryGetValue(scene, out container))
-			{
-				return true;
-			}
-			if (!parentContainers.TryGetValue(scene, out IContainer? parent))
-			{
-				parent = DefaultParent;
-			}
-			container = containers[scene] = parent?.CreateScope() ?? new Builder().Build();
-			return true;
+			Builder builder = new();
+			builderAction(builder);
+			containers.Add(builder.Build());
 		}
 
-		public static void SetParent(Scene scene, IContainer parent)
+		public static void PushContainer(IContainer parent)
 		{
-			if (containers.ContainsKey(scene))
-			{
-				Debug.LogWarning($"Changing the parent {nameof(IContainer)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
-			}
-			parentContainers[scene] = parent;
+			containers.Add(parent.CreateScope());
 		}
 
-		public static bool RemoveParent(Scene scene)
+		public static void PushContainer(IContainer parent, Action<IScopeBuilder> builderAction)
 		{
-			if (containers.ContainsKey(scene))
-			{
-				Debug.LogWarning($"Changing the parent {nameof(IContainer)} of a loaded Scene ({scene.name}) will only have an effect the next time it's loaded.");
-			}
-			return parentContainers.Remove(scene);
+			containers.Add(parent.CreateScope(builderAction));
 		}
 
-		public static bool RemoveParent(IContainer container)
+		public static void PopContainer()
 		{
-			bool success = false;
-			foreach (KeyValuePair<Scene, IContainer> item in parentContainers)
-			{
-				if (item.Value == container)
-				{
-					success |= RemoveParent(item.Key);
-				}
-			}
-			return success;
-		}
+			int last = containers.Count - 1;
+			if (last < 0) return;
 
-		private static void OnSceneUnloaded(Scene scene)
-		{
-			if (containers.TryGetValue(scene, out IContainer container))
-			{
-				container.Dispose();
-				containers.Remove(scene);
-			}
+			IContainer container = containers[last];
+			containers.RemoveAt(last);
+			container.Dispose();
 		}
 	}
 }
