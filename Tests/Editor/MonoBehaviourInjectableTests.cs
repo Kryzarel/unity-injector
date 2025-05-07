@@ -125,11 +125,11 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			if (useDefaultParent)
 			{
-				UnityInjector.RootContainer = container;
+				// UnityInjector.RootContainer = container;
 			}
 			else
 			{
-				UnityInjector.SetParent(scene, container);
+				// UnityInjector.SetParent(scene, container);
 			}
 		}
 	}
