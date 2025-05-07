@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Kryz.DI;
@@ -9,7 +8,7 @@ namespace Kryz.UnityDI
 {
 	public static class UnityInjector
 	{
-		public static IContainer? CurrentContainer => containers.Count > 0 ? containers[^1] : null;
+		public static IContainer CurrentContainer => containers[^1];
 
 		public static readonly IReadOnlyList<IContainer> Containers;
 		public static readonly IReadOnlyDictionary<Scene, IContainer> SceneContainers;
@@ -19,14 +18,22 @@ namespace Kryz.UnityDI
 
 		static UnityInjector()
 		{
-			int sceneCount = SceneManager.sceneCountInBuildSettings;
 			Containers = containers = new List<IContainer>();
-			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
+			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(SceneManager.sceneCountInBuildSettings);
 
-			// Don't use this. No need to register scenes that don't have any Injectable objects.
-			// SceneManager.sceneLoaded += OnSceneLoaded;
+			containers.Add(new Builder().Build());
+
+			SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 			Application.quitting += Clear;
+		}
+
+		private static void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
+		{
+			if (!sceneContainers.TryGetValue(scene, out _))
+			{
+				sceneContainers[scene] = CurrentContainer.CreateScope();
+			}
 		}
 
 		private static void OnSceneUnloaded(Scene scene)
@@ -45,69 +52,67 @@ namespace Kryz.UnityDI
 			{
 				container.Dispose();
 			}
-			containers.Clear();
 
 			foreach (KeyValuePair<Scene, IContainer> item in sceneContainers)
 			{
 				item.Value.Dispose();
 			}
+
+			containers.Clear();
+			containers.Add(new Builder().Build());
 			sceneContainers.Clear();
 		}
 
 		/// <summary>
 		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns><see cref="true"/> if <see cref="Scene.isLoaded"/>, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
+		/// <returns><see cref="true"/> if <see cref="Scene.IsValid"/>, <see cref="false"/> otherwise.</returns>
+		public static bool TryGetSceneContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
 		{
-			if (!scene.isLoaded)
+			if (!scene.IsValid())
 			{
 				container = null;
 				return false;
 			}
-			if (sceneContainers.TryGetValue(scene, out container))
+			if (!sceneContainers.TryGetValue(scene, out container))
 			{
-				return true;
+				container = sceneContainers[scene] = CurrentContainer.CreateScope();
 			}
-			container = sceneContainers[scene] = CurrentContainer?.CreateScope() ?? new Builder().Build();
 			return true;
 		}
 
 		/// <summary>
 		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns>The corresponding <see cref="IContainer"/>, or <see cref="null"/> if the <see cref="Scene"/> is not loaded.</returns>
-		public static IContainer? GetContainer(Scene scene)
+		/// <returns>The corresponding <see cref="IContainer"/>, or <see cref="null"/> if the <see cref="Scene"/> is not valid.</returns>
+		public static IContainer? GetSceneContainer(Scene scene)
 		{
-			TryGetContainer(scene, out IContainer? container);
+			TryGetSceneContainer(scene, out IContainer? container);
 			return container;
 		}
 
-		public static void PushContainer(Action<IScopeBuilder> builderAction)
+		/// <summary>
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="Containers"/> list. The last pushed container will the parent for newly loaded scenes.
+		/// </summary>
+		/// <param name="container"></param>
+		public static void PushContainer(IContainer container)
 		{
-			Builder builder = new();
-			builderAction(builder);
-			containers.Add(builder.Build());
+			containers.Add(container);
 		}
 
-		public static void PushContainer(IContainer parent)
-		{
-			containers.Add(parent.CreateScope());
-		}
-
-		public static void PushContainer(IContainer parent, Action<IScopeBuilder> builderAction)
-		{
-			containers.Add(parent.CreateScope(builderAction));
-		}
-
-		public static void PopContainer()
+		/// <summary>
+		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="Containers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
+		/// </summary>
+		/// <returns></returns>
+		public static bool PopContainer()
 		{
 			int last = containers.Count - 1;
-			if (last < 0) return;
+			if (last <= 0) return false; // Always keep the first container in the list. That one is the root and cannot be removed.
 
 			IContainer container = containers[last];
 			containers.RemoveAt(last);
 			container.Dispose();
+			return true;
 		}
 	}
 }

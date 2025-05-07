@@ -12,7 +12,7 @@ namespace Kryz.UnityDI
 
 		private void Start()
 		{
-			if (!UnityInjector.TryGetContainer(gameObject.scene, out container))
+			if (!UnityInjector.TryGetSceneContainer(gameObject.scene, out container))
 			{
 				throw new InvalidOperationException($"Failed to get {typeof(IContainer).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 			}
