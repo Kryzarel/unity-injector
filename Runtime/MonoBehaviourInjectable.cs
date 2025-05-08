@@ -6,21 +6,25 @@ namespace Kryz.UnityDI
 {
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
-		private IContainer? container;
-
-		public IContainer? Container => container;
+		private void Awake()
+		{
+			if (!UnityInjector.TryGetSceneBuilder(gameObject.scene, out IScopeBuilder? builder))
+			{
+				throw new InvalidOperationException($"Failed to get {typeof(IScopeBuilder).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+			}
+			Register(builder);
+		}
 
 		private void Start()
 		{
-			if (!UnityInjector.TryGetSceneContainer(gameObject.scene, out container))
+			if (!UnityInjector.TryGetSceneContainer(gameObject.scene, out IContainer? container))
 			{
 				throw new InvalidOperationException($"Failed to get {typeof(IContainer).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 			}
 			container.Inject(this);
-			Init();
 		}
 
-		protected virtual void Init() { }
+		protected virtual void Register(IScopeBuilder builder) { }
 	}
 
 	public abstract class MonoBehaviour<T1> : MonoBehaviourInjectable

@@ -15,11 +15,14 @@ namespace Kryz.UnityDI
 
 		private static readonly List<IContainer> containers;
 		private static readonly Dictionary<Scene, IContainer> sceneContainers;
+		private static readonly Dictionary<Scene, IBuilder> sceneBuilders;
 
 		static UnityInjector()
 		{
+			int sceneCount = SceneManager.sceneCountInBuildSettings;
 			Containers = containers = new List<IContainer>();
-			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(SceneManager.sceneCountInBuildSettings);
+			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
+			sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
 
 			containers.Add(new Builder().Build());
 
@@ -30,10 +33,11 @@ namespace Kryz.UnityDI
 
 		private static void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
 		{
-			if (!sceneContainers.TryGetValue(scene, out _))
+			if (!sceneBuilders.Remove(scene, out IBuilder builder))
 			{
-				sceneContainers[scene] = CurrentContainer.CreateScope();
+				builder = CurrentContainer.CreateScopeBuilder();
 			}
+			sceneContainers[scene] = builder.Build();
 		}
 
 		private static void OnSceneUnloaded(Scene scene)
@@ -66,18 +70,27 @@ namespace Kryz.UnityDI
 		/// <summary>
 		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns><see cref="true"/> if <see cref="Scene.IsValid"/>, <see cref="false"/> otherwise.</returns>
 		public static bool TryGetSceneContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
 		{
-			if (!scene.IsValid())
+			return sceneContainers.TryGetValue(scene, out container);
+		}
+
+		/// <summary>
+		/// Attempts to get the <see cref="IScopeBuilder"/> for a given <see cref="Scene"/>.
+		/// </summary>
+		/// <returns><see cref="true"/> if <see cref="Scene.IsValid"/>, <see cref="false"/> otherwise.</returns>
+		public static bool TryGetSceneBuilder(Scene scene, [MaybeNullWhen(returnValue: false)] out IScopeBuilder register)
+		{
+			if (sceneContainers.ContainsKey(scene) || scene.isLoaded || !scene.IsValid())
 			{
-				container = null;
+				register = null;
 				return false;
 			}
-			if (!sceneContainers.TryGetValue(scene, out container))
+			if (!sceneBuilders.TryGetValue(scene, out IBuilder builder))
 			{
-				container = sceneContainers[scene] = CurrentContainer.CreateScope();
+				builder = sceneBuilders[scene] = CurrentContainer.CreateScopeBuilder();
 			}
+			register = builder;
 			return true;
 		}
 
