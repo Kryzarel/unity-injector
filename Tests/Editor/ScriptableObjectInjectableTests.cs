@@ -26,7 +26,7 @@ namespace Kryz.UnityDI.Tests.Editor
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
 				UnityInjector.PushContainer(GetContainerWithRegistrations(Lifetime.Singleton));
-				container = UnityInjector.CurrentContainer!;
+				container = UnityInjector.CurrentParent!;
 			}
 		}
 

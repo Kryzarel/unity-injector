@@ -11,8 +11,8 @@ namespace Kryz.UnityDI.Tests.Editor
 		public void TestClear()
 		{
 			UnityInjector.Clear();
-			Assert.IsNull(UnityInjector.CurrentContainer);
-			Assert.AreEqual(0, UnityInjector.Containers.Count, 0);
+			Assert.IsNull(UnityInjector.CurrentParent);
+			Assert.AreEqual(0, UnityInjector.ParentContainers.Count, 0);
 		}
 
 		[UnityTest]
@@ -20,8 +20,8 @@ namespace Kryz.UnityDI.Tests.Editor
 		{
 			EditorUtility.RequestScriptReload();
 			yield return new WaitForDomainReload();
-			Assert.IsNull(UnityInjector.CurrentContainer);
-			Assert.AreEqual(0, UnityInjector.Containers.Count, 0);
+			Assert.IsNull(UnityInjector.CurrentParent);
+			Assert.AreEqual(0, UnityInjector.ParentContainers.Count, 0);
 		}
 	}
 }

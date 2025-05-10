@@ -8,23 +8,23 @@ namespace Kryz.UnityDI
 {
 	public static class UnityInjector
 	{
-		public static IContainer CurrentContainer => containers[^1];
+		public static IContainer CurrentParent => parentContainers[^1];
 
-		public static readonly IReadOnlyList<IContainer> Containers;
+		public static readonly IReadOnlyList<IContainer> ParentContainers;
 		public static readonly IReadOnlyDictionary<Scene, IContainer> SceneContainers;
 
-		private static readonly List<IContainer> containers;
-		private static readonly Dictionary<Scene, IContainer> sceneContainers;
+		private static readonly List<IContainer> parentContainers;
 		private static readonly Dictionary<Scene, IBuilder> sceneBuilders;
+		private static readonly Dictionary<Scene, IContainer> sceneContainers;
 
 		static UnityInjector()
 		{
 			int sceneCount = SceneManager.sceneCountInBuildSettings;
-			Containers = containers = new List<IContainer>();
-			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
+			ParentContainers = parentContainers = new List<IContainer>();
 			sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
+			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
-			containers.Add(new Builder().Build());
+			parentContainers.Add(new Builder().Build());
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
@@ -35,7 +35,7 @@ namespace Kryz.UnityDI
 		{
 			if (!sceneBuilders.Remove(scene, out IBuilder builder))
 			{
-				builder = CurrentContainer.CreateScopeBuilder();
+				builder = CurrentParent.CreateScopeBuilder();
 			}
 			sceneContainers[scene] = builder.Build();
 		}
@@ -52,7 +52,7 @@ namespace Kryz.UnityDI
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		public static void Clear()
 		{
-			foreach (IContainer container in containers)
+			foreach (IContainer container in parentContainers)
 			{
 				container.Dispose();
 			}
@@ -62,14 +62,16 @@ namespace Kryz.UnityDI
 				item.Value.Dispose();
 			}
 
-			containers.Clear();
-			containers.Add(new Builder().Build());
+			parentContainers.Clear();
+			parentContainers.Add(new Builder().Build());
+			sceneBuilders.Clear();
 			sceneContainers.Clear();
 		}
 
 		/// <summary>
 		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
+		/// <returns><see cref="true"/> if the <see cref="Scene"/> is loaded, <see cref="false"/> otherwise.</returns>
 		public static bool TryGetSceneContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
 		{
 			return sceneContainers.TryGetValue(scene, out container);
@@ -78,7 +80,7 @@ namespace Kryz.UnityDI
 		/// <summary>
 		/// Attempts to get the <see cref="IScopeBuilder"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns><see cref="true"/> if <see cref="Scene.IsValid"/>, <see cref="false"/> otherwise.</returns>
+		/// <returns><see cref="true"/> while the <see cref="Scene"/> is being loaded, <see cref="false"/> otherwise.</returns>
 		public static bool TryGetSceneBuilder(Scene scene, [MaybeNullWhen(returnValue: false)] out IScopeBuilder register)
 		{
 			if (sceneContainers.ContainsKey(scene) || scene.isLoaded || !scene.IsValid())
@@ -88,7 +90,7 @@ namespace Kryz.UnityDI
 			}
 			if (!sceneBuilders.TryGetValue(scene, out IBuilder builder))
 			{
-				builder = sceneBuilders[scene] = CurrentContainer.CreateScopeBuilder();
+				builder = sceneBuilders[scene] = CurrentParent.CreateScopeBuilder();
 			}
 			register = builder;
 			return true;
@@ -97,7 +99,7 @@ namespace Kryz.UnityDI
 		/// <summary>
 		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
 		/// </summary>
-		/// <returns>The corresponding <see cref="IContainer"/>, or <see cref="null"/> if the <see cref="Scene"/> is not valid.</returns>
+		/// <returns>The corresponding <see cref="IContainer"/>, or <see cref="null"/> if the <see cref="Scene"/> is not loaded.</returns>
 		public static IContainer? GetSceneContainer(Scene scene)
 		{
 			TryGetSceneContainer(scene, out IContainer? container);
@@ -105,26 +107,43 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Pushes a new <see cref="IContainer"/> to the <see cref="Containers"/> list. The last pushed container will the parent for newly loaded scenes.
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list. The last pushed container will be the parent for newly loaded scenes.
 		/// </summary>
-		/// <param name="container"></param>
+		/// <param name="container">The <see cref="IContainer"/> to push.</param>
 		public static void PushContainer(IContainer container)
 		{
-			containers.Add(container);
+			parentContainers.Add(container);
 		}
 
 		/// <summary>
-		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="Containers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
+		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="ParentContainers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
 		/// </summary>
-		/// <returns></returns>
 		public static bool PopContainer()
 		{
-			int last = containers.Count - 1;
+			int last = parentContainers.Count - 1;
 			if (last <= 0) return false; // Always keep the first container in the list. That one is the root and cannot be removed.
 
-			IContainer container = containers[last];
-			containers.RemoveAt(last);
+			IContainer container = parentContainers[last];
+			parentContainers.RemoveAt(last);
 			container.Dispose();
+			return true;
+		}
+
+		/// <summary>
+		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="ParentContainers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
+		/// </summary>
+		/// <param name="container">The <see cref="IContainer"/> to remove.</param>
+		/// <param name="dispose">If true, Dispose() will be called on the container after removal.</param>
+		public static bool RemoveContainer(IContainer container, bool dispose = false)
+		{
+			int index = parentContainers.IndexOf(container);
+			if (index <= 0) return false; // Always keep the first container in the list. That one is the root and cannot be removed.
+
+			parentContainers.RemoveAt(index);
+			if (dispose)
+			{
+				container.Dispose();
+			}
 			return true;
 		}
 	}
