@@ -130,7 +130,7 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="ParentContainers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
+		/// Removes the specified <see cref="IContainer"/> from the <see cref="ParentContainers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
 		/// </summary>
 		/// <param name="container">The <see cref="IContainer"/> to remove.</param>
 		/// <param name="dispose">If true, Dispose() will be called on the container after removal.</param>

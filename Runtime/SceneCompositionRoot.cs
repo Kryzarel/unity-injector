@@ -17,7 +17,7 @@ namespace Kryz.UnityDI
 				Register(builder);
 				return;
 			}
-			throw new InvalidOperationException($"Failed to get {typeof(IScopeBuilder).Name} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+			throw new InvalidOperationException($"Failed to get {nameof(IScopeBuilder)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 		}
 
 		protected abstract void Register(IScopeBuilder builder);

@@ -1,3 +1,4 @@
+using System;
 using Kryz.UnityDI;
 using UnityEditor;
 
@@ -9,13 +10,17 @@ public static class SetExecutionOrder
 		MonoScript? injectable = null;
 		MonoScript? compositionRoot = null;
 
-		foreach (MonoScript monoScript in MonoImporter.GetAllRuntimeMonoScripts())
+		MonoScript[] scripts = MonoImporter.GetAllRuntimeMonoScripts();
+		for (int i = 0; i < scripts.Length; i++)
 		{
-			if (monoScript.GetClass() == typeof(MonoBehaviourInjectable))
+			MonoScript monoScript = scripts[i];
+			Type scriptType = monoScript.GetClass();
+
+			if (scriptType == typeof(MonoBehaviourInjectable))
 			{
 				injectable = monoScript;
 			}
-			else if (monoScript.GetClass() == typeof(SceneCompositionRoot))
+			else if (scriptType == typeof(SceneCompositionRoot))
 			{
 				compositionRoot = monoScript;
 			}
