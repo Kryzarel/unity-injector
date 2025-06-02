@@ -106,7 +106,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			IContainer sceneContainer = UnityInjector.SceneContainers[injectable.gameObject.scene];
+			IContainer sceneContainer = UnityInjector.Instance.SceneContainers[injectable.gameObject.scene];
 			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
 			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
 			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);

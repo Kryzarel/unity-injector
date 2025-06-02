@@ -8,7 +8,7 @@ namespace Kryz.UnityDI
 	{
 		private void Start()
 		{
-			if (UnityInjector.TryGetSceneContainer(gameObject.scene, out IContainer? container))
+			if (UnityInjector.Instance.TryGetSceneContainer(gameObject.scene, out IContainer? container))
 			{
 				container.Inject(this);
 				return;
