@@ -1,27 +1,45 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
 using Kryz.DI;
+using Kryz.DI.Tests;
 using NUnit.Framework;
 using UnityEditor;
-using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Kryz.UnityDI.Tests.Editor
 {
 	public class UnityInjectorTests
 	{
-		private const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-		private static readonly FieldInfo sceneBuildersInfo = typeof(UnityInjector).GetField("sceneBuilders", flags);
-
-		[Test]
-		public void TestInstance()
+		[SetUp]
+		public void SetUp()
 		{
+			UnityInjector.Instance.Clear();
+		}
+
+		[UnityTest]
+		public IEnumerator DomainReload()
+		{
+			// Assert
+			AssertCleanInjector(UnityInjector.Instance);
+
 			// Arrange
-			UnityInjector unityInjector = new();
+			UnityInjector.Instance.PushContainer();
+
+			// Act
+			EditorUtility.RequestScriptReload();
+			yield return new WaitForDomainReload();
 
 			// Assert
+			AssertCleanInjector(UnityInjector.Instance);
+		}
+
+		[Test]
+		public void Clear([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
+		{
+			// Assert
 			AssertCleanInjector(unityInjector);
+
+			// Arrange
+			unityInjector.PushContainer();
 
 			// Act
 			unityInjector.Clear();
@@ -31,24 +49,39 @@ namespace Kryz.UnityDI.Tests.Editor
 		}
 
 		[Test]
-		public void TestClear()
+		public void PushEmptyContainer([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
 		{
+			// Arrange
+			IContainer container = new Builder().Build();
+
 			// Act
-			UnityInjector.Instance.Clear();
+			unityInjector.PushContainer(container);
 
 			// Assert
-			AssertCleanInjector(UnityInjector.Instance);
+			Assert.AreEqual(2, unityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(container, unityInjector.CurrentParent);
+			Assert.IsFalse(unityInjector.CurrentParent.TryGetType<IA>(out _));
 		}
 
-		[UnityTest]
-		public IEnumerator TestDomainReload()
+		[Test]
+		public void PushContainer([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
 		{
+			// Arrange
+			IContainer container = new Builder().Register<IA, A>(Lifetime.Singleton).Build();
+
 			// Act
-			EditorUtility.RequestScriptReload();
-			yield return new WaitForDomainReload();
+			unityInjector.PushContainer(container);
 
 			// Assert
-			AssertCleanInjector(UnityInjector.Instance);
+			Assert.AreEqual(2, unityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(container, unityInjector.CurrentParent);
+			Assert.IsTrue(unityInjector.CurrentParent.TryGetType<IA>(out _));
+		}
+
+		private static IEnumerable InjectorValueSource()
+		{
+			yield return new UnityInjector();
+			yield return UnityInjector.Instance;
 		}
 
 		private static void AssertCleanInjector(UnityInjector unityInjector)
@@ -56,10 +89,8 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(unityInjector.CurrentParent);
 			Assert.AreEqual(unityInjector.CurrentParent, unityInjector.ParentContainers[0]);
 			Assert.AreEqual(1, unityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(0, unityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(0, unityInjector.SceneContainers.Count, 0);
-
-			var sceneBuilders = (Dictionary<Scene, IBuilder>)sceneBuildersInfo.GetValue(unityInjector);
-			Assert.AreEqual(0, sceneBuilders.Count, 0);
 		}
 	}
 }
