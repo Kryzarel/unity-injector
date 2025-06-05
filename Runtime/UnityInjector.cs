@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Kryz.DI;
@@ -13,6 +14,7 @@ namespace Kryz.UnityDI
 		public IContainer CurrentParent => parentContainers[^1];
 
 		public readonly IReadOnlyList<IContainer> ParentContainers;
+		public readonly IReadOnlyDictionary<Scene, IBuilder> SceneBuilders;
 		public readonly IReadOnlyDictionary<Scene, IContainer> SceneContainers;
 
 		private readonly List<IContainer> parentContainers;
@@ -21,12 +23,12 @@ namespace Kryz.UnityDI
 
 		public UnityInjector()
 		{
-			int sceneCount = SceneManager.sceneCountInBuildSettings;
 			ParentContainers = parentContainers = new List<IContainer>();
-			sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
-			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
-
 			parentContainers.Add(new Builder().Build());
+
+			int sceneCount = SceneManager.sceneCountInBuildSettings;
+			SceneBuilders = sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
+			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
@@ -114,6 +116,23 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list, as a child (aka scope) of the <see cref="CurrentParent"/>. The last pushed container will be the parent for newly loaded scenes.
+		/// </summary>
+		public void PushContainer()
+		{
+			parentContainers.Add(CurrentParent.CreateScope());
+		}
+
+		/// <summary>
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list, as a child (aka scope) of the <see cref="CurrentParent"/>. The last pushed container will be the parent for newly loaded scenes.
+		/// </summary>
+		/// <param name="builderAction">Additional registrations.</param>
+		public void PushContainer(Action<IScopeBuilder> builderAction)
+		{
+			parentContainers.Add(CurrentParent.CreateScope(builderAction));
+		}
+
+		/// <summary>
 		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list. The last pushed container will be the parent for newly loaded scenes.
 		/// </summary>
 		/// <param name="container">The <see cref="IContainer"/> to push.</param>
@@ -141,9 +160,9 @@ namespace Kryz.UnityDI
 		/// </summary>
 		/// <param name="container">The <see cref="IContainer"/> to remove.</param>
 		/// <param name="dispose">If true, Dispose() will be called on the container after removal.</param>
-		public bool RemoveContainer(IContainer container, bool dispose = false)
+		public bool RemoveContainer(IContainer container, bool dispose = true)
 		{
-			int index = parentContainers.IndexOf(container);
+			int index = parentContainers.LastIndexOf(container); // Use LastIndexOf to search the list from end to start.
 			if (index <= 0) return false; // Always keep the first container in the list. That one is the root and cannot be removed.
 
 			parentContainers.RemoveAt(index);
