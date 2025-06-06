@@ -12,7 +12,7 @@ namespace Kryz.UnityDI
 	{
 		private void Awake()
 		{
-			if (UnityInjector.Instance.TryGetSceneBuilder(gameObject.scene, out IScopeBuilder? builder))
+			if (UnityInjector.TryGetSceneBuilder(gameObject.scene, out IScopeBuilder? builder))
 			{
 				Register(builder);
 				return;

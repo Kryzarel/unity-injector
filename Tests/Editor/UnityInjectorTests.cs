@@ -3,94 +3,166 @@ using Kryz.DI;
 using Kryz.DI.Tests;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Kryz.UnityDI.Tests.Editor
 {
 	public class UnityInjectorTests
 	{
+		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
+		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable.unity";
+
 		[SetUp]
 		public void SetUp()
 		{
-			UnityInjector.Instance.Clear();
+			UnityInjector.Clear();
 		}
 
 		[UnityTest]
 		public IEnumerator DomainReload()
 		{
 			// Assert
-			AssertCleanInjector(UnityInjector.Instance);
+			AssertCleanInjector();
 
 			// Arrange
-			UnityInjector.Instance.PushContainer();
+			UnityInjector.PushContainer();
 
 			// Act
 			EditorUtility.RequestScriptReload();
 			yield return new WaitForDomainReload();
 
 			// Assert
-			AssertCleanInjector(UnityInjector.Instance);
+			AssertCleanInjector();
 		}
 
 		[Test]
-		public void Clear([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
+		public void Clear()
 		{
 			// Assert
-			AssertCleanInjector(unityInjector);
+			AssertCleanInjector();
 
 			// Arrange
-			unityInjector.PushContainer();
+			UnityInjector.PushContainer();
 
 			// Act
-			unityInjector.Clear();
+			UnityInjector.Clear();
 
 			// Assert
-			AssertCleanInjector(unityInjector);
+			AssertCleanInjector();
 		}
 
 		[Test]
-		public void PushEmptyContainer([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
+		public void PushEmptyContainer()
 		{
 			// Arrange
 			IContainer container = new Builder().Build();
 
 			// Act
-			unityInjector.PushContainer(container);
+			UnityInjector.PushContainer(container);
 
 			// Assert
-			Assert.AreEqual(2, unityInjector.ParentContainers.Count, 0);
-			Assert.AreEqual(container, unityInjector.CurrentParent);
-			Assert.IsFalse(unityInjector.CurrentParent.TryGetType<IA>(out _));
+			Assert.AreEqual(2, UnityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(container, UnityInjector.CurrentParent);
+			Assert.IsFalse(UnityInjector.CurrentParent.TryGetType<IA>(out _));
 		}
 
 		[Test]
-		public void PushContainer([ValueSource(nameof(InjectorValueSource))] UnityInjector unityInjector)
+		public void PushContainer()
 		{
 			// Arrange
 			IContainer container = new Builder().Register<IA, A>(Lifetime.Singleton).Build();
 
 			// Act
-			unityInjector.PushContainer(container);
+			UnityInjector.PushContainer(container);
 
 			// Assert
-			Assert.AreEqual(2, unityInjector.ParentContainers.Count, 0);
-			Assert.AreEqual(container, unityInjector.CurrentParent);
-			Assert.IsTrue(unityInjector.CurrentParent.TryGetType<IA>(out _));
+			Assert.AreEqual(2, UnityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(container, UnityInjector.CurrentParent);
+			Assert.IsTrue(UnityInjector.CurrentParent.TryGetType<IA>(out _));
 		}
 
-		private static IEnumerable InjectorValueSource()
+		[UnityTest]
+		public IEnumerator LoadScene_CompositionRoot()
 		{
-			yield return new UnityInjector();
-			yield return UnityInjector.Instance;
+			// Arrange
+			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			yield return new EnterPlayMode();
+			// Dependencies for this scene are registered in TestSceneCompositionRoot component, which lives directly in the scene.
+			TestSceneCompositionRoot.OnRegister += OnRegister;
+
+			// Act
+			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(Scene1, default);
+
+			// Assert
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+
+			// Act
+			yield return operation;
+
+			// Assert
+			static void OnRegister(TestSceneCompositionRoot compositionRoot)
+			{
+				Scene scene = SceneManager.GetActiveScene();
+				Assert.AreEqual(scene, compositionRoot.gameObject.scene);
+				Assert.IsTrue(UnityInjector.SceneBuilders.ContainsKey(scene));
+				Assert.AreEqual(1, UnityInjector.SceneBuilders.Count, 0);
+				Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+			}
+
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
+			Scene scene = SceneManager.GetActiveScene();
+			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
+
+			TestSceneCompositionRoot.OnRegister -= OnRegister;
+			yield return new ExitPlayMode();
 		}
 
-		private static void AssertCleanInjector(UnityInjector unityInjector)
+		[UnityTest]
+		public IEnumerator LoadScene_MonoInjectableOnly()
 		{
-			Assert.IsNotNull(unityInjector.CurrentParent);
-			Assert.AreEqual(unityInjector.CurrentParent, unityInjector.ParentContainers[0]);
-			Assert.AreEqual(1, unityInjector.ParentContainers.Count, 0);
-			Assert.AreEqual(0, unityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(0, unityInjector.SceneContainers.Count, 0);
+			// Arrange
+			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			yield return new EnterPlayMode();
+
+			// Dependencies for this scene are registered in a new Container in UnityInjector.
+			UnityInjector.PushContainer(builder =>
+			{
+				builder.Register<IA, A>(Lifetime.Singleton);
+				builder.Register<IB, B>(Lifetime.Singleton);
+				builder.Register<IC, C>(Lifetime.Singleton);
+			});
+
+			// Act
+			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(Scene2, default);
+
+			// Assert
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+
+			// Act
+			yield return operation;
+
+			// Assert
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
+			Scene scene = SceneManager.GetActiveScene();
+			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
+
+			yield return new ExitPlayMode();
+		}
+
+		private static void AssertCleanInjector()
+		{
+			Assert.IsNotNull(UnityInjector.CurrentParent);
+			Assert.AreEqual(UnityInjector.CurrentParent, UnityInjector.ParentContainers[0]);
+			Assert.AreEqual(1, UnityInjector.ParentContainers.Count, 0);
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
 		}
 	}
 }

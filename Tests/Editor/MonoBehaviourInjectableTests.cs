@@ -13,8 +13,8 @@ namespace Kryz.UnityDI.Tests.Editor
 {
 	public class MonoBehaviourInjectableTests
 	{
-		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 1.unity";
-		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 2.unity";
+		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
+		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable.unity";
 
 		private static readonly string[] scenes = { Scene1, Scene2 };
 
@@ -106,7 +106,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			IContainer sceneContainer = UnityInjector.Instance.SceneContainers[injectable.gameObject.scene];
+			IContainer sceneContainer = UnityInjector.SceneContainers[injectable.gameObject.scene];
 			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
 			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
 			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
