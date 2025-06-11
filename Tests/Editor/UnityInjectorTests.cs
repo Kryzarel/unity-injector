@@ -88,7 +88,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		public IEnumerator LoadScene_CompositionRoot()
 		{
 			// Arrange
-			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			yield return new EnterPlayMode();
 			// Dependencies for this scene are registered in TestSceneCompositionRoot component, which lives directly in the scene.
 			TestSceneCompositionRoot.OnRegister += OnRegister;
@@ -98,7 +98,8 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			// Assert
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
+			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			// Act
 			yield return operation;
@@ -115,7 +116,7 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
-			Scene scene = SceneManager.GetActiveScene();
+			scene = SceneManager.GetActiveScene();
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			TestSceneCompositionRoot.OnRegister -= OnRegister;
@@ -126,7 +127,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		public IEnumerator LoadScene_MonoInjectableOnly()
 		{
 			// Arrange
-			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			yield return new EnterPlayMode();
 
 			// Dependencies for this scene are registered in a new Container in UnityInjector.
@@ -142,7 +143,8 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			// Assert
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
+			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			// Act
 			yield return operation;
@@ -150,7 +152,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			// Assert
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
-			Scene scene = SceneManager.GetActiveScene();
+			scene = SceneManager.GetActiveScene();
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			yield return new ExitPlayMode();
