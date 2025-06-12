@@ -1,22 +1,32 @@
+using System;
 using System.Collections;
-using System.Linq;
+using System.Collections.Generic;
 using Kryz.DI;
 using Kryz.DI.Tests;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using static Kryz.DI.Tests.ContainerTestHelper;
 
 namespace Kryz.UnityDI.Tests.Editor
 {
 	public class MonoBehaviourInjectableTests
 	{
-		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
-		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable.unity";
+		private static readonly string CompositionRootScene = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
+		private static readonly string MonoInjectableScene1 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 1.unity";
+		private static readonly string MonoInjectableScene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 2.unity";
 
-		private static readonly string[] scenes = { Scene1, Scene2 };
+		private static readonly Lifetime[] lifetimes = (Lifetime[])Enum.GetValues(typeof(Lifetime));
+
+		[UnitySetUp]
+		public IEnumerator UnitySetUp()
+		{
+			UnityInjector.Clear();
+			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+			yield return new EnterPlayMode();
+		}
 
 		[UnityTearDown]
 		public IEnumerator UnityTearDown()
@@ -25,111 +35,96 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				yield return new ExitPlayMode();
 			}
+			UnityInjector.Clear();
 		}
 
-		[UnityTest]
-		public IEnumerator TestDifferentParents([Values(true, false)] bool useDefaultParent)
+		[Test]
+		public void TestEverything([ValueSource(nameof(lifetimes))] Lifetime lifetime)
 		{
-			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-			yield return new EnterPlayMode();
-
-			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
-
-			for (int i = 0; i < scenes.Length; i++)
+			// Arrange
+			UnityInjector.PushContainer(builder =>
 			{
-				IContainer container = GetContainerWithRegistrations(Lifetime.Singleton);
-				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
-				while (!scene.isLoaded)
-				{
-					yield return null;
-				}
-				testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
-				ValidateInjectable(testInjectables[i], container);
-			}
+				builder.Register<IA, A>(lifetime);
+				builder.Register<IB, B>(lifetime);
+				builder.Register<IC, C>(lifetime);
+			});
 
-			for (int i = 0; i < testInjectables.Length; i++)
-			{
-				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
-				for (int j = i + 1; j < testInjectables.Length; j++)
-				{
-					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
+			// Act
+			Scene scene = EditorSceneManager.LoadSceneInPlayMode(CompositionRootScene, new LoadSceneParameters(LoadSceneMode.Additive));
+			TestInjectableMonoBehaviour[] compositionRootInjectables = GetInjectables(scene);
 
-					// injectables must have different objects
-					Assert.AreNotEqual(injectable1.A, injectable2.A);
-					Assert.AreNotEqual(injectable1.B, injectable2.B);
-					Assert.AreNotEqual(injectable1.C, injectable2.C);
-				}
-			}
+			scene = EditorSceneManager.LoadSceneInPlayMode(MonoInjectableScene1, new LoadSceneParameters(LoadSceneMode.Additive));
+			TestInjectableMonoBehaviour[] monoInjectable1Injectables = GetInjectables(scene);
+
+			scene = EditorSceneManager.LoadSceneInPlayMode(MonoInjectableScene2, new LoadSceneParameters(LoadSceneMode.Additive));
+			TestInjectableMonoBehaviour[] monoInjectable2Injectables = GetInjectables(scene);
+
+			// Assert
+			AssertAgainstContainer(compositionRootInjectables, UnityInjector.CurrentParent, objectsMatchContainer: false); // Should never match because composition root re-registers the same types
+			AssertAgainstContainer(monoInjectable1Injectables, UnityInjector.CurrentParent, objectsMatchContainer: lifetime == Lifetime.Singleton); // Should only match when lifetime is singleton
+			AssertAgainstContainer(monoInjectable2Injectables, UnityInjector.CurrentParent, objectsMatchContainer: lifetime == Lifetime.Singleton); // Should only match when lifetime is singleton
+
+			AssertAgainstInjectables(compositionRootInjectables, compositionRootInjectables, objectsMatch: true); // Composition Root Scene, lifetime is always singleton, objects should always match
+			AssertAgainstInjectables(monoInjectable1Injectables, monoInjectable1Injectables, objectsMatch: lifetime != Lifetime.Transient); // Same scene, should match except when lifetime is transient
+			AssertAgainstInjectables(monoInjectable2Injectables, monoInjectable2Injectables, objectsMatch: lifetime != Lifetime.Transient); // Same scene, should match except when lifetime is transient
+			AssertAgainstInjectables(compositionRootInjectables, monoInjectable1Injectables, objectsMatch: false); // One of the scenes has composition root, should never match
+			AssertAgainstInjectables(compositionRootInjectables, monoInjectable2Injectables, objectsMatch: false); // One of the scenes has composition root, should never match
+			AssertAgainstInjectables(monoInjectable1Injectables, monoInjectable2Injectables, objectsMatch: lifetime == Lifetime.Singleton); // Different scenes, no composition root, should only match when lifetime is singleton
 		}
 
-		[UnityTest]
-		public IEnumerator TestSameParent([Values(true, false)] bool useDefaultParent)
+		private static TestInjectableMonoBehaviour[] GetInjectables(Scene scene)
 		{
-			EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-			yield return new EnterPlayMode();
-
-			TestInjectableMonoBehaviour[] testInjectables = new TestInjectableMonoBehaviour[scenes.Length];
-
-			IContainer container = GetContainerWithRegistrations(Lifetime.Singleton);
-
-			for (int i = 0; i < scenes.Length; i++)
+			List<TestInjectableMonoBehaviour> injectables = new();
+			foreach (GameObject gameObject in scene.GetRootGameObjects())
 			{
-				SetupScene(scenes[i], useDefaultParent, container, out Scene scene);
-				while (!scene.isLoaded)
+				if (gameObject.TryGetComponent(out TestInjectableMonoBehaviour injectable))
 				{
-					yield return null;
+					injectables.Add(injectable);
 				}
-				testInjectables[i] = scene.GetRootGameObjects().Single().GetComponent<TestInjectableMonoBehaviour>();
-				ValidateInjectable(testInjectables[i], container);
 			}
+			return injectables.ToArray();
+		}
 
-			for (int i = 0; i < testInjectables.Length; i++)
+		private static void AssertAgainstContainer(TestInjectableMonoBehaviour[] injectables, IContainer container, bool objectsMatchContainer)
+		{
+			foreach (TestInjectableMonoBehaviour injectable in injectables)
 			{
-				TestInjectableMonoBehaviour injectable1 = testInjectables[i];
-				for (int j = i + 1; j < testInjectables.Length; j++)
-				{
-					TestInjectableMonoBehaviour injectable2 = testInjectables[j];
+				Assert.IsNotNull(injectable.A);
+				Assert.IsNotNull(injectable.B);
+				Assert.IsNotNull(injectable.C);
 
-					// injectables must have the same objects
-					Assert.AreEqual(injectable1.A, injectable2.A);
-					Assert.AreEqual(injectable1.B, injectable2.B);
-					Assert.AreEqual(injectable1.C, injectable2.C);
-				}
+				IContainer sceneContainer = UnityInjector.SceneContainers[injectable.gameObject.scene];
+				Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
+				Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
+				Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
+
+				Action<object?, object?> assertEquality = objectsMatchContainer ? Assert.AreEqual : Assert.AreNotEqual;
+				assertEquality(container.GetObject<IA>(), injectable.A);
+				assertEquality(container.GetObject<IB>(), injectable.B);
+				assertEquality(container.GetObject<IC>(), injectable.C);
 			}
 		}
 
-		private static void ValidateInjectable(TestInjectableMonoBehaviour injectable, IContainer? parentContainer)
+		private static void AssertAgainstInjectables(TestInjectableMonoBehaviour[] injectables1, TestInjectableMonoBehaviour[] injectables2, bool objectsMatch)
 		{
-			Assert.IsNotNull(injectable);
+			Action<object?, object?> assertEquality = objectsMatch ? Assert.AreEqual : Assert.AreNotEqual;
 
-			Assert.IsNotNull(injectable.A);
-			Assert.IsNotNull(injectable.B);
-			Assert.IsNotNull(injectable.C);
-
-			IContainer sceneContainer = UnityInjector.SceneContainers[injectable.gameObject.scene];
-			Assert.AreEqual(sceneContainer.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(sceneContainer.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(sceneContainer.GetObject<IC>(), injectable.C);
-
-			if (parentContainer != null)
+			foreach (TestInjectableMonoBehaviour injectable1 in injectables1)
 			{
-				Assert.AreEqual(parentContainer.GetObject<IA>(), injectable.A);
-				Assert.AreEqual(parentContainer.GetObject<IB>(), injectable.B);
-				Assert.AreEqual(parentContainer.GetObject<IC>(), injectable.C);
-			}
-		}
+				foreach (TestInjectableMonoBehaviour injectable2 in injectables2)
+				{
+					Assert.IsNotNull(injectable1.A);
+					Assert.IsNotNull(injectable1.B);
+					Assert.IsNotNull(injectable1.C);
 
-		private static void SetupScene(string scenePath, bool useDefaultParent, IContainer container, out Scene scene)
-		{
-			scene = EditorSceneManager.LoadSceneInPlayMode(scenePath, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive });
+					Assert.IsNotNull(injectable2.A);
+					Assert.IsNotNull(injectable2.B);
+					Assert.IsNotNull(injectable2.C);
 
-			if (useDefaultParent)
-			{
-				// UnityInjector.RootContainer = container;
-			}
-			else
-			{
-				// UnityInjector.SetParent(scene, container);
+					assertEquality(injectable1.A, injectable2.A);
+					assertEquality(injectable1.B, injectable2.B);
+					assertEquality(injectable1.C, injectable2.C);
+				}
 			}
 		}
 	}

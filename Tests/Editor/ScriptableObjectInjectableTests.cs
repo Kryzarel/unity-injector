@@ -7,7 +7,6 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using static Kryz.DI.Tests.ContainerTestHelper;
 
 namespace Kryz.UnityDI.Tests.Editor
 {
@@ -16,8 +15,6 @@ namespace Kryz.UnityDI.Tests.Editor
 		private static readonly string Scene = PackagePath.Path + "/Tests/Shared/Test Scene ScriptableInjectable.unity";
 		private static readonly string Asset = PackagePath.Path + "/Tests/Shared/Test Injectable Scriptable Object.asset";
 
-		private IContainer container = null!;
-
 		[UnitySetUp]
 		public IEnumerator UnitySetUp()
 		{
@@ -25,8 +22,12 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
-				UnityInjector.PushContainer(GetContainerWithRegistrations(Lifetime.Singleton));
-				container = UnityInjector.CurrentParent!;
+				UnityInjector.PushContainer(builder =>
+				{
+					builder.Register<IA, A>(Lifetime.Singleton);
+					builder.Register<IB, B>(Lifetime.Singleton);
+					builder.Register<IC, C>(Lifetime.Singleton);
+				});
 			}
 		}
 
@@ -43,7 +44,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		[UnityTest]
 		public IEnumerator TestSceneReference()
 		{
-			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(Scene, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Single });
+			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(Scene, new LoadSceneParameters(LoadSceneMode.Single));
 
 			MonoWithScriptableObjectReference? mono = Object.FindAnyObjectByType<MonoWithScriptableObjectReference>();
 			Assert.IsNotNull(mono);
@@ -57,9 +58,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
 		}
 
 		[Test]
@@ -71,9 +72,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
 		}
 
 		[Test]
@@ -85,9 +86,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(container.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(container.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(container.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
 		}
 	}
 }

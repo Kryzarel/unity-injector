@@ -12,8 +12,8 @@ namespace Kryz.UnityDI.Tests.Editor
 {
 	public class UnityInjectorTests
 	{
-		private static readonly string Scene1 = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
-		private static readonly string Scene2 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable.unity";
+		private static readonly string CompositionRootScene = PackagePath.Path + "/Tests/Shared/Test Scene CompositionRoot.unity";
+		private static readonly string MonoInjectableScene1 = PackagePath.Path + "/Tests/Shared/Test Scene MonoInjectable 1.unity";
 
 		[SetUp]
 		public void SetUp()
@@ -94,7 +94,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			TestSceneCompositionRoot.OnRegister += OnRegister;
 
 			// Act
-			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(Scene1, default);
+			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(CompositionRootScene, default);
 
 			// Assert
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
@@ -139,7 +139,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			});
 
 			// Act
-			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(Scene2, default);
+			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(MonoInjectableScene1, default);
 
 			// Assert
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);

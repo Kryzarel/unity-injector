@@ -71,15 +71,6 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
-		/// </summary>
-		/// <returns><see cref="true"/> if the <see cref="Scene"/> is loaded, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetSceneContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
-		{
-			return sceneContainers.TryGetValue(scene, out container);
-		}
-
-		/// <summary>
 		/// Attempts to get the <see cref="IScopeBuilder"/> for a given <see cref="Scene"/>.
 		/// </summary>
 		/// <returns><see cref="true"/> while the <see cref="Scene"/> is being loaded, <see cref="false"/> otherwise.</returns>
@@ -96,6 +87,15 @@ namespace Kryz.UnityDI
 			}
 			register = builder;
 			return true;
+		}
+
+		/// <summary>
+		/// Attempts to get the <see cref="IContainer"/> for a given <see cref="Scene"/>.
+		/// </summary>
+		/// <returns><see cref="true"/> if the <see cref="Scene"/> is loaded, <see cref="false"/> otherwise.</returns>
+		public static bool TryGetSceneContainer(Scene scene, [MaybeNullWhen(returnValue: false)] out IContainer container)
+		{
+			return sceneContainers.TryGetValue(scene, out container);
 		}
 
 		/// <summary>
