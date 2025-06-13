@@ -109,24 +109,7 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list, as a child (aka scope) of the <see cref="CurrentParent"/>. The last pushed container will be the parent for newly loaded scenes.
-		/// </summary>
-		public static void PushContainer()
-		{
-			parentContainers.Add(CurrentParent.CreateScope());
-		}
-
-		/// <summary>
-		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list, as a child (aka scope) of the <see cref="CurrentParent"/>. The last pushed container will be the parent for newly loaded scenes.
-		/// </summary>
-		/// <param name="builderAction">Additional registrations.</param>
-		public static void PushContainer(Action<IScopeBuilder> builderAction)
-		{
-			parentContainers.Add(CurrentParent.CreateScope(builderAction));
-		}
-
-		/// <summary>
-		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list. The last pushed container will be the parent for newly loaded scenes.
+		/// Pushes the specified <see cref="IContainer"/> to the <see cref="ParentContainers"/> list. The last pushed container will be the parent for newly loaded scenes.
 		/// </summary>
 		/// <param name="container">The <see cref="IContainer"/> to push.</param>
 		public static void PushContainer(IContainer container)
@@ -135,16 +118,52 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list, as a child (aka scope) of the <see cref="CurrentParent"/>. The last pushed container will be the parent for newly loaded scenes.
+		/// </summary>
+		/// <param name="scopedToCurrent">If true, the new container will be created as a child (aka scope) of <see cref="CurrentParent"/>.</param>
+		/// <returns>The newly created container.</returns>
+		public static IContainer PushNewContainer(bool scopedToCurrent = true)
+		{
+			IContainer container = scopedToCurrent ? CurrentParent.CreateScope() : new Builder().Build();
+			parentContainers.Add(container);
+			return container;
+		}
+
+		/// <summary>
+		/// Pushes a new <see cref="IContainer"/> to the <see cref="ParentContainers"/> list. The last pushed container will be the parent for newly loaded scenes.
+		/// </summary>
+		/// <param name="builderAction">Additional registrations.</param>
+		/// <param name="scopedToCurrent">If true, the new container will be created as a child (aka scope) of <see cref="CurrentParent"/>.</param>
+		/// <returns>The newly created container.</returns>
+		public static IContainer PushNewContainer(Action<IScopeBuilder> builderAction, bool scopedToCurrent = true)
+		{
+			IContainer container = scopedToCurrent ? CurrentParent.CreateScope(builderAction) : new Builder().Build();
+			parentContainers.Add(container);
+			return container;
+		}
+
+		/// <summary>
 		/// Removes the last pushed <see cref="IContainer"/> from the <see cref="ParentContainers"/> list. The default container (at index 0) will always remain in the list and cannot be removed.
 		/// </summary>
-		public static bool PopContainer()
+		/// <param name="container">The removed <see cref="IContainer"/> or null if no containers could be removed OR the container was diposed.</param>
+		/// <param name="dispose">If true, Dispose() will be called on the container after removal. When true, the "out <see cref="IContainer"/> <paramref name="container"/>" param will always be null.</param>
+		/// <returns><see cref="true"/> if the container was removed successfully.</returns>
+		public static bool PopContainer([MaybeNullWhen(returnValue: false)] out IContainer? container, bool dispose = true)
 		{
 			int last = parentContainers.Count - 1;
-			if (last <= 0) return false; // Always keep the first container in the list. That one is the root and cannot be removed.
+			if (last <= 0) // Always keep the first container in the list. That one is the root and cannot be removed.
+			{
+				container = null;
+				return false;
+			}
 
-			IContainer container = parentContainers[last];
+			container = parentContainers[last];
 			parentContainers.RemoveAt(last);
-			container.Dispose();
+			if (dispose)
+			{
+				container.Dispose();
+				container = null;
+			}
 			return true;
 		}
 
@@ -153,6 +172,7 @@ namespace Kryz.UnityDI
 		/// </summary>
 		/// <param name="container">The <see cref="IContainer"/> to remove.</param>
 		/// <param name="dispose">If true, Dispose() will be called on the container after removal.</param>
+		/// <returns><see cref="true"/> if the <paramref name="container"/> was found and removed successfully.</returns>
 		public static bool RemoveContainer(IContainer container, bool dispose = true)
 		{
 			int index = parentContainers.LastIndexOf(container); // Use LastIndexOf to search the list from end to start.

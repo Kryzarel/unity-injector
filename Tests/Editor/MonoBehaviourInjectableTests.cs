@@ -42,7 +42,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		public void TestEverything([ValueSource(nameof(lifetimes))] Lifetime lifetime)
 		{
 			// Arrange
-			UnityInjector.PushContainer(builder =>
+			UnityInjector.PushNewContainer(builder =>
 			{
 				builder.Register<IA, A>(lifetime);
 				builder.Register<IB, B>(lifetime);

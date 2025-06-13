@@ -22,7 +22,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 				yield return new EnterPlayMode();
-				UnityInjector.PushContainer(builder =>
+				UnityInjector.PushNewContainer(builder =>
 				{
 					builder.Register<IA, A>(Lifetime.Singleton);
 					builder.Register<IB, B>(Lifetime.Singleton);

@@ -28,7 +28,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			AssertCleanInjector();
 
 			// Arrange
-			UnityInjector.PushContainer();
+			UnityInjector.PushNewContainer();
 
 			// Act
 			EditorUtility.RequestScriptReload();
@@ -45,7 +45,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			AssertCleanInjector();
 
 			// Arrange
-			UnityInjector.PushContainer();
+			UnityInjector.PushNewContainer();
 
 			// Act
 			UnityInjector.Clear();
@@ -131,7 +131,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			yield return new EnterPlayMode();
 
 			// Dependencies for this scene are registered in a new Container in UnityInjector.
-			UnityInjector.PushContainer(builder =>
+			UnityInjector.PushNewContainer(builder =>
 			{
 				builder.Register<IA, A>(Lifetime.Singleton);
 				builder.Register<IB, B>(Lifetime.Singleton);
