@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Kryz.UnityDI
 {
+	[Inject]
 	public abstract class ScriptableObjectInjectable : ScriptableObject
 	{
 		protected void OnEnable()

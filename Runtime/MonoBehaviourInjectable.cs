@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace Kryz.UnityDI
 {
+	[Inject]
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
 		private void Start()
