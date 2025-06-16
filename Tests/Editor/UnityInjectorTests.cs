@@ -66,7 +66,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			// Assert
 			Assert.AreEqual(2, UnityInjector.ParentContainers.Count, 0);
 			Assert.AreEqual(container, UnityInjector.CurrentParent);
-			Assert.IsFalse(UnityInjector.CurrentParent.TryGetType<IA>(out _));
+			Assert.IsFalse(UnityInjector.CurrentParent.TryResolveType<IA>(out _));
 		}
 
 		[Test]
@@ -81,7 +81,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			// Assert
 			Assert.AreEqual(2, UnityInjector.ParentContainers.Count, 0);
 			Assert.AreEqual(container, UnityInjector.CurrentParent);
-			Assert.IsTrue(UnityInjector.CurrentParent.TryGetType<IA>(out _));
+			Assert.IsTrue(UnityInjector.CurrentParent.TryResolveType<IA>(out _));
 		}
 
 		[UnityTest]

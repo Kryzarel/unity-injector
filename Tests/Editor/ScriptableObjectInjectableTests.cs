@@ -58,9 +58,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IC>(), injectable.C);
 		}
 
 		[Test]
@@ -72,9 +72,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IC>(), injectable.C);
 		}
 
 		[Test]
@@ -86,9 +86,9 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(injectable.B);
 			Assert.IsNotNull(injectable.C);
 
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IA>(), injectable.A);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IB>(), injectable.B);
-			Assert.AreEqual(UnityInjector.CurrentParent.GetObject<IC>(), injectable.C);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IA>(), injectable.A);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IB>(), injectable.B);
+			Assert.AreEqual(UnityInjector.CurrentParent.ResolveObject<IC>(), injectable.C);
 		}
 	}
 }
