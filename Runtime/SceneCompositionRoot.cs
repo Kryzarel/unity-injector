@@ -12,14 +12,14 @@ namespace Kryz.UnityDI
 	{
 		private void Awake()
 		{
-			if (UnityInjector.TryGetSceneBuilder(gameObject.scene, out IScopeBuilder? builder))
+			if (UnityInjector.TryGetSceneBuilder(gameObject.scene, out IRegister? builder))
 			{
 				Register(builder);
 				return;
 			}
-			throw new InvalidOperationException($"Failed to get {nameof(IScopeBuilder)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+			throw new InvalidOperationException($"Failed to get {nameof(IRegister)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 		}
 
-		protected abstract void Register(IScopeBuilder builder);
+		protected abstract void Register(IRegister builder);
 	}
 }
