@@ -137,7 +137,9 @@ namespace Kryz.UnityDI
 		/// <returns>The newly created container.</returns>
 		public static IContainer PushNewContainer(Action<IRegister> builderAction, bool scopedToCurrent = true)
 		{
-			IContainer container = scopedToCurrent ? CurrentParent.CreateScope(builderAction) : new Builder().Build();
+			IBuilder builder = scopedToCurrent ? CurrentParent.CreateScopeBuilder() : new Builder();
+			builderAction?.Invoke(builder);
+			IContainer container = builder.Build();
 			parentContainers.Add(container);
 			return container;
 		}
