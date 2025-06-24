@@ -2,7 +2,7 @@
     "name": "Kryz.UnityDI.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:722ffc6995820bc4ca0bcd86796fc8c7"
+        "Kryz.UnityDI"
     ],
     "includePlatforms": [
         "Editor"
