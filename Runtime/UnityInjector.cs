@@ -71,21 +71,20 @@ namespace Kryz.UnityDI
 		}
 
 		/// <summary>
-		/// Attempts to get the <see cref="IRegister"/> for a given <see cref="Scene"/>.
+		/// Attempts to get the <see cref="IBuilder"/> for a given <see cref="Scene"/>.
 		/// </summary>
 		/// <returns><see cref="true"/> while the <see cref="Scene"/> is being loaded, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetSceneBuilder(Scene scene, [MaybeNullWhen(returnValue: false)] out IRegister register)
+		public static bool TryGetSceneBuilder(Scene scene, [MaybeNullWhen(returnValue: false)] out IBuilder builder)
 		{
 			if (sceneContainers.ContainsKey(scene) || scene.isLoaded || !scene.IsValid())
 			{
-				register = null;
+				builder = null;
 				return false;
 			}
-			if (!sceneBuilders.TryGetValue(scene, out IBuilder builder))
+			if (!sceneBuilders.TryGetValue(scene, out builder))
 			{
 				builder = sceneBuilders[scene] = CurrentParent.CreateScopeBuilder();
 			}
-			register = builder;
 			return true;
 		}
 
@@ -135,7 +134,7 @@ namespace Kryz.UnityDI
 		/// <param name="builderAction">Additional registrations.</param>
 		/// <param name="scopedToCurrent">If true, the new container will be created as a child (aka scope) of <see cref="CurrentParent"/>.</param>
 		/// <returns>The newly created container.</returns>
-		public static IContainer PushNewContainer(Action<IRegister> builderAction, bool scopedToCurrent = true)
+		public static IContainer PushNewContainer(Action<IBuilder> builderAction, bool scopedToCurrent = true)
 		{
 			IBuilder builder = scopedToCurrent ? CurrentParent.CreateScopeBuilder() : new Builder();
 			builderAction?.Invoke(builder);

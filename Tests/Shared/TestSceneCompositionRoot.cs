@@ -8,7 +8,7 @@ namespace Kryz.UnityDI.Tests
 	{
 		public static event Action<TestSceneCompositionRoot>? OnRegister;
 
-		protected override void Register(IRegister builder)
+		protected override void Register(IBuilder builder)
 		{
 			builder.Register<IA, A>(Lifetime.Singleton);
 			builder.Register<IB, B>(Lifetime.Singleton);
