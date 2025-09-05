@@ -7,7 +7,7 @@ namespace Kryz.UnityDI
 	[Inject]
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
-		private void Start()
+		protected virtual void Start()
 		{
 			if (UnityInjector.TryGetSceneContainer(gameObject.scene, out IContainer? container))
 			{
