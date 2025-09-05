@@ -10,7 +10,7 @@ namespace Kryz.UnityDI
 	/// </summary>
 	public abstract class SceneCompositionRoot : MonoBehaviour
 	{
-		private void Awake()
+		protected virtual void Awake()
 		{
 			if (UnityInjector.TryGetSceneBuilder(gameObject.scene, out IBuilder? builder))
 			{
