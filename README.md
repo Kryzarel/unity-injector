@@ -2,7 +2,7 @@
 
 Unity-specific portion of a Dependency Injection framework for C# and Unity. This package contains Unity-specific code for better integration with the engine.
 
-### YouTube Tutorial: https://youtu.be/Z0J-PDZBhqc
+### YouTube Tutorial: https://youtu.be/5GnNG5EmP5U
 
 Made mainly for personal use and educational purposes. Watch the video for a step-by-step tutorial on how it was implemented.
 
