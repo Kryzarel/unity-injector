@@ -90,33 +90,26 @@ namespace Kryz.UnityDI.Tests.Editor
 			// Arrange
 			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			yield return new EnterPlayMode();
+
 			// Dependencies for this scene are registered in TestSceneCompositionRoot component, which lives directly in the scene.
 			TestSceneCompositionRoot.OnRegister += OnRegister;
 
 			// Act
-			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(CompositionRootScene, default);
-
-			// Assert
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
-			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
-
-			// Act
-			yield return operation;
+			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(CompositionRootScene, default);
 
 			// Assert
 			static void OnRegister(TestSceneCompositionRoot compositionRoot)
 			{
 				Scene scene = SceneManager.GetActiveScene();
 				Assert.AreEqual(scene, compositionRoot.gameObject.scene);
-				Assert.IsTrue(UnityInjector.SceneBuilders.ContainsKey(scene));
 				Assert.AreEqual(1, UnityInjector.SceneBuilders.Count, 0);
 				Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
+				Assert.IsTrue(UnityInjector.SceneBuilders.ContainsKey(scene));
 			}
 
+			scene = SceneManager.GetActiveScene();
 			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
-			scene = SceneManager.GetActiveScene();
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			TestSceneCompositionRoot.OnRegister -= OnRegister;
@@ -124,7 +117,7 @@ namespace Kryz.UnityDI.Tests.Editor
 		}
 
 		[UnityTest]
-		public IEnumerator LoadScene_MonoInjectableOnly()
+		public IEnumerator LoadScene_MonoInjectable()
 		{
 			// Arrange
 			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -139,20 +132,12 @@ namespace Kryz.UnityDI.Tests.Editor
 			});
 
 			// Act
-			AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(MonoInjectableScene1, default);
+			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(MonoInjectableScene1, default);
 
 			// Assert
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
-			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
-
-			// Act
-			yield return operation;
-
-			// Assert
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
-			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
 			scene = SceneManager.GetActiveScene();
+			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
+			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
 			yield return new ExitPlayMode();
