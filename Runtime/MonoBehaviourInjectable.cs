@@ -7,15 +7,24 @@ namespace Kryz.UnityDI
 	[Inject]
 	public abstract class MonoBehaviourInjectable : MonoBehaviour
 	{
-		protected virtual void Start()
+		private bool didInit;
+
+		// Init may get called from the scene loading process or from Start(), if the object is created afterwards.
+		// Since Start() always runs even if we've already called Init() from scene loading, we need an early exit to prevent it from running twice.
+		internal void Init(IContainer? container = null)
 		{
-			if (UnityInjector.TryGetSceneContainer(gameObject.scene, out IContainer? container))
+			if (didInit) return;
+			didInit = true;
+
+			if (container == null && !UnityInjector.TryGetSceneContainer(gameObject.scene, out container))
 			{
-				container.Inject(this);
-				return;
+				throw new InvalidOperationException($"Failed to get {nameof(IContainer)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
 			}
-			throw new InvalidOperationException($"Failed to get {nameof(IContainer)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
+
+			container.Inject(this);
 		}
+
+		protected virtual void Start() => Init();
 	}
 
 	public abstract class MonoBehaviour<T1> : MonoBehaviourInjectable

@@ -51,13 +51,13 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			// Act
 			Scene scene = EditorSceneManager.LoadSceneInPlayMode(CompositionRootScene, new LoadSceneParameters(LoadSceneMode.Additive));
-			TestInjectableMonoBehaviour[] compositionRootInjectables = GetInjectables(scene);
+			List<TestInjectableMonoBehaviour> compositionRootInjectables = GetInjectables(scene);
 
 			scene = EditorSceneManager.LoadSceneInPlayMode(MonoInjectableScene1, new LoadSceneParameters(LoadSceneMode.Additive));
-			TestInjectableMonoBehaviour[] monoInjectable1Injectables = GetInjectables(scene);
+			List<TestInjectableMonoBehaviour> monoInjectable1Injectables = GetInjectables(scene);
 
 			scene = EditorSceneManager.LoadSceneInPlayMode(MonoInjectableScene2, new LoadSceneParameters(LoadSceneMode.Additive));
-			TestInjectableMonoBehaviour[] monoInjectable2Injectables = GetInjectables(scene);
+			List<TestInjectableMonoBehaviour> monoInjectable2Injectables = GetInjectables(scene);
 
 			// Assert
 			AssertAgainstContainer(compositionRootInjectables, UnityInjector.CurrentParent, objectsMatchContainer: false); // Should never match because composition root re-registers the same types
@@ -72,20 +72,17 @@ namespace Kryz.UnityDI.Tests.Editor
 			AssertAgainstInjectables(monoInjectable1Injectables, monoInjectable2Injectables, objectsMatch: lifetime == Lifetime.Singleton); // Different scenes, no composition root, should only match when lifetime is singleton
 		}
 
-		private static TestInjectableMonoBehaviour[] GetInjectables(Scene scene)
+		private static List<TestInjectableMonoBehaviour> GetInjectables(Scene scene)
 		{
 			List<TestInjectableMonoBehaviour> injectables = new();
-			foreach (GameObject gameObject in scene.GetRootGameObjects())
+			foreach (GameObject go in scene.GetRootGameObjects())
 			{
-				if (gameObject.TryGetComponent(out TestInjectableMonoBehaviour injectable))
-				{
-					injectables.Add(injectable);
-				}
+				injectables.AddRange(go.GetComponentsInChildren<TestInjectableMonoBehaviour>(includeInactive: true));
 			}
-			return injectables.ToArray();
+			return injectables;
 		}
 
-		private static void AssertAgainstContainer(TestInjectableMonoBehaviour[] injectables, IContainer container, bool objectsMatchContainer)
+		private static void AssertAgainstContainer(List<TestInjectableMonoBehaviour> injectables, IContainer container, bool objectsMatchContainer)
 		{
 			foreach (TestInjectableMonoBehaviour injectable in injectables)
 			{
@@ -105,7 +102,7 @@ namespace Kryz.UnityDI.Tests.Editor
 			}
 		}
 
-		private static void AssertAgainstInjectables(TestInjectableMonoBehaviour[] injectables1, TestInjectableMonoBehaviour[] injectables2, bool objectsMatch)
+		private static void AssertAgainstInjectables(List<TestInjectableMonoBehaviour> injectables1, List<TestInjectableMonoBehaviour> injectables2, bool objectsMatch)
 		{
 			Action<object?, object?> assertEquality = objectsMatch ? Assert.AreEqual : Assert.AreNotEqual;
 

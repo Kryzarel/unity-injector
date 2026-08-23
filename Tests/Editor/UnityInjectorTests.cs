@@ -4,7 +4,6 @@ using Kryz.DI.Tests;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -102,13 +101,10 @@ namespace Kryz.UnityDI.Tests.Editor
 			{
 				Scene scene = SceneManager.GetActiveScene();
 				Assert.AreEqual(scene, compositionRoot.gameObject.scene);
-				Assert.AreEqual(1, UnityInjector.SceneBuilders.Count, 0);
 				Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
-				Assert.IsTrue(UnityInjector.SceneBuilders.ContainsKey(scene));
 			}
 
 			scene = SceneManager.GetActiveScene();
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
@@ -136,7 +132,6 @@ namespace Kryz.UnityDI.Tests.Editor
 
 			// Assert
 			scene = SceneManager.GetActiveScene();
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(1, UnityInjector.SceneContainers.Count, 0);
 			Assert.IsTrue(UnityInjector.SceneContainers.ContainsKey(scene));
 
@@ -148,7 +143,6 @@ namespace Kryz.UnityDI.Tests.Editor
 			Assert.IsNotNull(UnityInjector.CurrentParent);
 			Assert.AreEqual(UnityInjector.CurrentParent, UnityInjector.ParentContainers[0]);
 			Assert.AreEqual(1, UnityInjector.ParentContainers.Count, 0);
-			Assert.AreEqual(0, UnityInjector.SceneBuilders.Count, 0);
 			Assert.AreEqual(0, UnityInjector.SceneContainers.Count, 0);
 		}
 	}

@@ -12,12 +12,14 @@ namespace Kryz.UnityDI
 		public static IContainer CurrentParent => parentContainers[^1];
 
 		public static readonly IReadOnlyList<IContainer> ParentContainers;
-		public static readonly IReadOnlyDictionary<Scene, IBuilder> SceneBuilders;
 		public static readonly IReadOnlyDictionary<Scene, IContainer> SceneContainers;
 
 		private static readonly List<IContainer> parentContainers;
-		private static readonly Dictionary<Scene, IBuilder> sceneBuilders;
 		private static readonly Dictionary<Scene, IContainer> sceneContainers;
+
+		private static readonly List<GameObject> rootObjects = new();
+		private static readonly List<SceneCompositionRoot> compositionRoots = new(1);
+		private static readonly List<MonoBehaviourInjectable> injectables = new(100);
 
 		static UnityInjector()
 		{
@@ -25,7 +27,7 @@ namespace Kryz.UnityDI
 			parentContainers.Add(new Builder().Build());
 
 			int sceneCount = SceneManager.sceneCountInBuildSettings;
-			SceneBuilders = sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
+			// SceneBuilders = sceneBuilders = new Dictionary<Scene, IBuilder>(sceneCount);
 			SceneContainers = sceneContainers = new Dictionary<Scene, IContainer>(sceneCount);
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
@@ -35,11 +37,39 @@ namespace Kryz.UnityDI
 
 		private static void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
 		{
-			if (!sceneBuilders.Remove(scene, out IBuilder builder))
+			IBuilder builder = CurrentParent.CreateScopeBuilder();
+
+			rootObjects.Clear();
+			scene.GetRootGameObjects(rootObjects);
+
+			compositionRoots.Clear();
+			foreach (GameObject go in rootObjects)
 			{
-				builder = CurrentParent.CreateScopeBuilder();
+				go.GetComponentsInChildren(includeInactive: true, compositionRoots);
+
+				foreach (SceneCompositionRoot compositionRoot in compositionRoots)
+				{
+					compositionRoot.Register_Internal(builder);
+				}
 			}
-			sceneContainers[scene] = builder.Build();
+			compositionRoots.Clear();
+
+			IContainer container = builder.Build();
+			sceneContainers[scene] = container;
+
+			injectables.Clear();
+			foreach (GameObject go in rootObjects)
+			{
+				go.GetComponentsInChildren(includeInactive: true, injectables);
+
+				foreach (MonoBehaviourInjectable injectable in injectables)
+				{
+					injectable.Init(container);
+				}
+			}
+			injectables.Clear();
+
+			rootObjects.Clear();
 		}
 
 		private static void OnSceneUnloaded(Scene scene)
@@ -66,26 +96,7 @@ namespace Kryz.UnityDI
 
 			parentContainers.Clear();
 			parentContainers.Add(new Builder().Build());
-			sceneBuilders.Clear();
 			sceneContainers.Clear();
-		}
-
-		/// <summary>
-		/// Attempts to get the <see cref="IBuilder"/> for a given <see cref="Scene"/>.
-		/// </summary>
-		/// <returns><see cref="true"/> while the <see cref="Scene"/> is being loaded, <see cref="false"/> otherwise.</returns>
-		public static bool TryGetSceneBuilder(Scene scene, [MaybeNullWhen(returnValue: false)] out IBuilder builder)
-		{
-			if (sceneContainers.ContainsKey(scene) || scene.isLoaded || !scene.IsValid())
-			{
-				builder = null;
-				return false;
-			}
-			if (!sceneBuilders.TryGetValue(scene, out builder))
-			{
-				builder = sceneBuilders[scene] = CurrentParent.CreateScopeBuilder();
-			}
-			return true;
 		}
 
 		/// <summary>
@@ -149,7 +160,7 @@ namespace Kryz.UnityDI
 		/// <param name="container">The removed <see cref="IContainer"/> or null if no containers could be removed OR the container was diposed.</param>
 		/// <param name="dispose">If true, Dispose() will be called on the container after removal. When true, the "out <see cref="IContainer"/> <paramref name="container"/>" param will always be null.</param>
 		/// <returns><see cref="true"/> if the container was removed successfully.</returns>
-		public static bool PopContainer([MaybeNullWhen(returnValue: false)] out IContainer? container, bool dispose = true)
+		public static bool PopContainer(out IContainer? container, bool dispose = true)
 		{
 			int last = parentContainers.Count - 1;
 			if (last <= 0) // Always keep the first container in the list. That one is the root and cannot be removed.

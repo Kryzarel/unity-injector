@@ -1,4 +1,3 @@
-using System;
 using Kryz.DI;
 using UnityEngine;
 
@@ -10,15 +9,7 @@ namespace Kryz.UnityDI
 	/// </summary>
 	public abstract class SceneCompositionRoot : MonoBehaviour
 	{
-		protected virtual void Awake()
-		{
-			if (UnityInjector.TryGetSceneBuilder(gameObject.scene, out IBuilder? builder))
-			{
-				Register(builder);
-				return;
-			}
-			throw new InvalidOperationException($"Failed to get {nameof(IBuilder)} for {nameof(GameObject)} \"{name}\" in scene \"{gameObject.scene.name}\"");
-		}
+		internal void Register_Internal(IBuilder builder) => Register(builder);
 
 		protected abstract void Register(IBuilder builder);
 	}
